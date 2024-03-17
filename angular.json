@@ -6,7 +6,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "bg-remover": {
+    "bg-replacer": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -16,7 +16,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/bg-remover",
+            "outputPath": "dist/bg-replacer",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [
@@ -60,10 +60,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "bg-remover:build:production"
+              "buildTarget": "bg-replacer:build:production"
             },
             "development": {
-              "buildTarget": "bg-remover:build:development"
+              "buildTarget": "bg-replacer:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -71,7 +71,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "buildTarget": "bg-remover:build"
+            "buildTarget": "bg-replacer:build"
           }
         },
         "test": {
