@@ -13,7 +13,7 @@ import { toObservable } from '@angular/core/rxjs-interop'
   imports: [RouterOutlet, HttpClientModule, CommonModule],
   template: `
     <main class="flex items-center p-16 h-dvh flex-col gap-10">
-      <h1 class="text-indigo-700 text-5xl">Yooooo man! Welcome to <span class="font-bold ml-3">bg-replacer</span></h1>
+      <h1 class="text-indigo-700 text-5xl">Yooooo man! Welcome to <span class="font-bold">bg-replacer</span></h1>
       <input type="file" class="file-upload" (change)="onFileChange($event)" class="shrink-0" />
       <img [src]="responseImgUrl$ | async" #fileInput alt="Uploaded image" class="flex-1" />
     </main>
