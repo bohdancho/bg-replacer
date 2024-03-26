@@ -16,6 +16,9 @@ import (
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/grayscale", grayscaleHandler)
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "Welcome to the image processing service!")
+	})
 
 	http.Handle("/", r)
 	fmt.Println("Server started at http://localhost:8080")
