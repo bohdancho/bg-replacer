@@ -11,38 +11,48 @@ import (
 	"io"
 	"strings"
 
-	"golang.org/x/image/webp"
+	"github.com/kolesa-team/go-webp/decoder"
+	"github.com/kolesa-team/go-webp/encoder"
+	"github.com/kolesa-team/go-webp/webp"
 )
 
-type imageFormat string
+type ImageFormat string
 
 const (
-	imageFormatPng  imageFormat = "image/png"
-	imageFormatWebp imageFormat = "image/webp"
-	imageFormatJpeg imageFormat = "image/jpeg"
+	imageFormatPng  ImageFormat = "image/png"
+	imageFormatWebp ImageFormat = "image/webp"
+	imageFormatJpeg ImageFormat = "image/jpeg"
 )
 
 var ErrUnsupportedImageFormat = errors.New("unsupported image format")
 
-type encoder func(w io.Writer, m image.Image) error
-type decoder func(r io.Reader) (image.Image, error)
+type Encoder func(w io.Writer, m image.Image) error
+type Decoder func(r io.Reader) (image.Image, error)
 
 var (
-	encoders = map[imageFormat]encoder{
+	encoders = map[ImageFormat]Encoder{
 		imageFormatPng: png.Encode,
 		imageFormatJpeg: func(w io.Writer, m image.Image) error {
-			return jpeg.Encode(w, m, &jpeg.Options{Quality: 10})
+			return jpeg.Encode(w, m, &jpeg.Options{Quality: 20})
 		},
-		imageFormatWebp: func(io.Writer, image.Image) error { return ErrUnsupportedImageFormat },
+		imageFormatWebp: func(w io.Writer, m image.Image) error {
+			options, err := encoder.NewLossyEncoderOptions(encoder.PresetDefault, 75)
+			if err != nil {
+				return err
+			}
+			return webp.Encode(w, m, options)
+		},
 	}
-	decoders = map[imageFormat]decoder{
+	decoders = map[ImageFormat]Decoder{
 		imageFormatPng:  png.Decode,
 		imageFormatJpeg: jpeg.Decode,
-		imageFormatWebp: webp.Decode,
+		imageFormatWebp: func(r io.Reader) (image.Image, error) {
+			return webp.Decode(r, &decoder.Options{})
+		},
 	}
 )
 
-func DecodeImage(s string) (image.Image, imageFormat, error) {
+func DecodeImage(s string) (image.Image, ImageFormat, error) {
 	header, content, found := strings.Cut(s, ";base64,")
 	if !found {
 		return nil, "", errors.New("no ';base64,' separator found")
@@ -52,7 +62,7 @@ func DecodeImage(s string) (image.Image, imageFormat, error) {
 		return nil, "", err
 	}
 
-	format := imageFormat(strings.TrimPrefix(header, "data:"))
+	format := ImageFormat(strings.TrimPrefix(header, "data:"))
 
 	decoder := decoders[format]
 	if decoder == nil {
@@ -68,14 +78,14 @@ func DecodeImage(s string) (image.Image, imageFormat, error) {
 	return decodedImage, format, nil
 }
 
-func EncodeImage(img image.Image, format imageFormat) (string, error) {
+func EncodeImage(img image.Image, format ImageFormat) (imgSrc string, err error) {
 	encoder := encoders[format]
 	if encoder == nil {
 		return "", ErrUnsupportedImageFormat
 	}
 
 	var buf bytes.Buffer
-	err := encoder(&buf, img)
+	err = encoder(&buf, img)
 	if err != nil {
 		return "", err
 	}

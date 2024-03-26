@@ -43,21 +43,27 @@ func grayscaleHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	image, format, err := codecs.DecodeImage(payload.ImgSrc)
-	if err != nil {
+	img, format, err := codecs.DecodeImage(payload.ImgSrc)
+	if err == codecs.ErrUnsupportedImageFormat {
 		http.Error(w, err.Error(), 400)
+		return
+	} else if err != nil {
+		http.Error(w, err.Error(), 500)
 		return
 	}
 
-	grayImage := grayscaleImage(image)
+	grayImg := grayscaleImage(img)
 
-	grayImageSrc, err := codecs.EncodeImage(grayImage, format)
-	if err != nil {
+	grayImgSrc, err := codecs.EncodeImage(grayImg, format)
+	if err == codecs.ErrUnsupportedImageFormat {
 		http.Error(w, err.Error(), 400)
+		return
+	} else if err != nil {
+		http.Error(w, err.Error(), 500)
 		return
 	}
 
-	jsonResponse, err := json.Marshal(grayImageSrc)
+	jsonResponse, err := json.Marshal(grayImgSrc)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
