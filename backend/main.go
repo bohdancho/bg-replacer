@@ -22,13 +22,15 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
 
-type ImgRequest struct {
-	ImgSrc string `json:"img"`
+type ImgDTO struct {
+	Src string `json:"img"`
+}
+
+func (imgDto *ImgDTO) fromJson(bytes []byte) error {
+	return json.Unmarshal(bytes, imgDto)
 }
 
 func grayscaleHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	payloadBuffer, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
@@ -36,14 +38,14 @@ func grayscaleHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var payload ImgRequest
-	err = json.Unmarshal(payloadBuffer, &payload)
+	var payload ImgDTO
+	err = payload.fromJson(payloadBuffer)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
 
-	img, format, err := codecs.DecodeImage(payload.ImgSrc)
+	img, format, err := codecs.DecodeImage(payload.Src)
 	if err == codecs.ErrUnsupportedImageFormat {
 		http.Error(w, err.Error(), 400)
 		return
@@ -69,6 +71,7 @@ func grayscaleHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonResponse)
 }
