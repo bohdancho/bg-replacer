@@ -1,9 +1,8 @@
 import { CommonModule } from '@angular/common'
 import { HttpClient, HttpClientModule } from '@angular/common/http'
-import { Component, ElementRef, ViewChild, signal, viewChild } from '@angular/core'
+import { Component, signal } from '@angular/core'
 import { RouterOutlet } from '@angular/router'
-import { from, fromEvent, of } from 'rxjs'
-import { filter, map, switchMap, tap } from 'rxjs/operators'
+import { filter, map, switchMap } from 'rxjs/operators'
 import { toObservable } from '@angular/core/rxjs-interop'
 
 // const PNG_HEADER = 'data:image/png;base64,'
@@ -12,12 +11,15 @@ import { toObservable } from '@angular/core/rxjs-interop'
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet, HttpClientModule, CommonModule],
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.css',
+  template: `
+    <main class="flex items-center p-16 h-dvh flex-col gap-10">
+      <h1 class="text-indigo-700 text-5xl">Yooooo man! Welcome to <span class="font-bold ml-3">bg-replacer</span></h1>
+      <input type="file" class="file-upload" (change)="onFileChange($event)" class="shrink-0" />
+      <img [src]="responseImgUrl$ | async" #fileInput alt="Uploaded image" class="flex-1" />
+    </main>
+  `,
 })
 export class AppComponent {
-  title = 'bg-replacer'
-
   uploadedImgUrl = signal<string | null>(null)
   responseImgUrl$ = toObservable(this.uploadedImgUrl).pipe(
     filter(Boolean),
