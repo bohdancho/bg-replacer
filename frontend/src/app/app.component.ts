@@ -23,20 +23,22 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
   template: `
     <main class="flex items-center p-16 h-dvh flex-col gap-10 min-h-dvh">
       <h1 class="text-indigo-700 text-5xl">Yooooo man! Welcome to <span class="font-bold">imaginaer</span></h1>
-      @if (originalImgUrl()) {
-        <mat-slide-toggle [formControl]="shouldDisplayProcessedControl">Grayscale</mat-slide-toggle>
-      } @else {
-        <div class="flex flex-1 justify-center items-center text-center">
+      <div class="flex-1 flex flex-col justify-center items-center self-stretch gap-4">
+        @if (processingErrored$()) {
+          <p class="text-red-500 text-5xl">Processing errored</p>
+        } @else if (originalImgUrl()) {
+          <mat-slide-toggle [formControl]="shouldDisplayProcessedControl">Grayscale</mat-slide-toggle>
+          @if (isProcessedImgLoading()) {
+            <mat-spinner diameter="50"></mat-spinner>
+          } @else if (visibleImgSrc()) {
+            <div class="self-stretch flex-1 relative">
+              <img [src]="visibleImgSrc()" class="absolute w-full h-full object-contain" />
+            </div>
+          }
+        } @else {
           <input type="file" (change)="onOriginalImgChange($event)" />
-        </div>
-      }
-      @if (isProcessedImgLoading()) {
-        <mat-spinner class="flex-1" diameter="50"></mat-spinner>
-      } @else if (visibleImgSrc()) {
-        <div class="flex-1 w-full relative">
-          <img [src]="visibleImgSrc()" class="absolute w-full h-full object-contain" />
-        </div>
-      }
+        }
+      </div>
       <p class="mt-auto">health: {{ health$ | async }}</p>
     </main>
   `,
@@ -60,10 +62,16 @@ export class AppComponent {
   shouldDisplayProcessed = toSignal(this.shouldDisplayProcessedControl.valueChanges)
   processingRequested$ = this.shouldDisplayProcessedControl.valueChanges.pipe(filter(Boolean), take(1))
 
+  processingErrored$ = signal(false)
+
   processedImgSrc$ = this.processingRequested$.pipe(
     map(() => this.originalImgUrl()),
     filter(Boolean),
     switchMap((img) => this.http.post<string>('api/grayscale', { img })),
+    catchError(() => {
+      this.processingErrored$.set(true)
+      return of(null)
+    }),
     map((url) => url),
   )
   processedImgSrc = toSignal(this.processedImgSrc$)
