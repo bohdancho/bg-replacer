@@ -1,4 +1,4 @@
-import { Component, computed, effect, input } from '@angular/core'
+import { Component, computed, input } from '@angular/core'
 import { toSignal, toObservable } from '@angular/core/rxjs-interop'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { debounceTime } from 'rxjs'
@@ -11,7 +11,7 @@ import { debounceTime } from 'rxjs'
     class: 'flex-1 self-stretch relative',
   },
   template: `
-    @if (processingErrorMsg()) {
+    @if (processingErrorMsg() && processingEnabled()) {
       <div class="text-red-500 text-5xl flex justify-center h-full flex-col text-center">
         <p>Processing errored:</p>
         <p>{{ processingErrorMsg() }}</p>
@@ -24,17 +24,17 @@ import { debounceTime } from 'rxjs'
   `,
 })
 export class ImgViewComponent {
-  shouldDisplayProcessed = input<boolean>()
+  processingEnabled = input<boolean>()
   processingErrorMsg = input<null | string>()
   originalSrc = input<string | null>(null)
   processedSrc = input<string | null>()
 
   src = computed(() => {
-    const shouldDisplayProcessed = this.shouldDisplayProcessed()
+    const processingEnabled = this.processingEnabled()
     const processedSrc = this.processedSrc()
     const originalSrc = this.originalSrc()
 
-    if (shouldDisplayProcessed) {
+    if (processingEnabled) {
       return processedSrc ?? originalSrc
     } else {
       return originalSrc
@@ -44,9 +44,10 @@ export class ImgViewComponent {
   shouldDisplaySpinner = toSignal(
     toObservable(
       computed(() => {
-        const shouldProcess = this.shouldDisplayProcessed()
-        const processedImgSrc = this.processedSrc()
-        return shouldProcess && !processedImgSrc
+        const processingEnabled = this.processingEnabled()
+        const processedSrc = this.processedSrc()
+        const error = this.processingErrorMsg()
+        return processingEnabled && !processedSrc && !error
       }),
     ).pipe(debounceTime(200)),
   )

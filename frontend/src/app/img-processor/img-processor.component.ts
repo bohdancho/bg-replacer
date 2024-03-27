@@ -1,9 +1,8 @@
 import { HttpClient, HttpClientModule, HttpErrorResponse } from '@angular/common/http'
 import { Component, inject, signal } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { RouterOutlet } from '@angular/router'
-import { filter, take, map, switchMap, catchError, of, Subject } from 'rxjs'
+import { filter, take, map, switchMap, catchError, of, Subject, ignoreElements } from 'rxjs'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { ImgViewComponent } from './img-view.component'
 import { CommonModule } from '@angular/common'
@@ -19,10 +18,10 @@ import { CommonModule } from '@angular/common'
     @if (originalImgSrc()) {
       <mat-slide-toggle [formControl]="processingControl">Grayscale</mat-slide-toggle>
       <app-img-view
-        [shouldDisplayProcessed]="!!processing()"
+        [processingEnabled]="(processingControl.valueChanges | async) ?? false"
         [originalSrc]="originalImgSrc()"
-        [processedSrc]="processedImgSrc() ?? null"
-        [processingErrorMsg]="processingErrorMsg()"
+        [processedSrc]="(processedImgSrc | async) ?? null"
+        [processingErrorMsg]="(processingErrorMsg | async) ?? null"
       />
     } @else {
       <input type="file" (change)="onOriginalImgChange($event)" />
@@ -32,6 +31,7 @@ import { CommonModule } from '@angular/common'
 export class ImageProcessorComponent {
   readonly http = inject(HttpClient)
 
+  reset = new Subject<void>()
   onOriginalImgChange(event: Event) {
     const files = (event.target as HTMLInputElement).files
     if (!files || files.length === 0) return
@@ -45,20 +45,26 @@ export class ImageProcessorComponent {
   originalImgSrc = signal<string | null>(null)
 
   processingControl = new FormControl(false)
-  processing = toSignal(this.processingControl.valueChanges)
-  processingRequested$ = this.processingControl.valueChanges.pipe(filter(Boolean), take(1))
-
-  processingErrorMsg = signal<null | string>(null)
-
-  processedImgSrc$ = this.processingRequested$.pipe(
+  processingEnabled = signal(() => this.processingControl.value)
+  processingRequest$ = this.processingControl.valueChanges.pipe(
+    filter(Boolean),
+    take(1),
     map(() => this.originalImgSrc()),
     filter(Boolean),
     switchMap((img) => this.http.post<string>('api/grayscale', { img })),
-    catchError((err: HttpErrorResponse) => {
-      this.processingErrorMsg.set(err.error || err.message)
-      return of(null)
-    }),
-    map((url) => url),
   )
-  processedImgSrc = toSignal(this.processedImgSrc$)
+
+  processedImgSrc = this.processingRequest$.pipe(catchError(() => of(null)))
+  processingErrorMsg = this.processingRequest$.pipe(
+    ignoreElements(),
+    catchError((err: HttpErrorResponse) => {
+      if (typeof err.error === 'string') {
+        return of(err.error)
+      }
+      if (err.message) {
+        return of(err.message)
+      }
+      return of('Unknown error')
+    }),
+  )
 }
