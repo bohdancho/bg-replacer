@@ -1,18 +1,32 @@
 version: '3'
 
 services:
-  frontend:
-    build: ./frontend
-    image: bohdancho/imaginaer-frontend
-    ports:
-      - 4200:80
-    networks:
+  nginx: 
+    image: nginx
+    networks: 
       - app
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf # custom conf goes here
+      - static-content:/usr/share/nginx/html
+    ports:
+      - 80:80
+    depends_on:
+      - build-frontend
+      - backend
+
+  build-frontend:
+    image: bohdancho/imaginaer-frontend
+    build: ./frontend
+    volumes:
+      - static-content:/app/dist/browser
+
   backend:
-    build: ./backend
     image: bohdancho/imaginaer-backend
+    build: ./backend
     networks:
       - app
 
 networks:
   app:
+volumes:
+  static-content:

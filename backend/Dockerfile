@@ -13,3 +13,4 @@ FROM scratch
 
 COPY --from=build /app /app
 ENTRYPOINT ["/app"]
+EXPOSE 8080
