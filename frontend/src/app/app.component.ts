@@ -1,13 +1,14 @@
-import { CommonModule } from '@angular/common'
 import { HttpClient, HttpClientModule, HttpErrorResponse } from '@angular/common/http'
-import { Component, computed, inject, signal } from '@angular/core'
-import { RouterOutlet } from '@angular/router'
-import { catchError, debounceTime, filter, map, switchMap, take } from 'rxjs/operators'
+import { Component, inject } from '@angular/core'
+import { catchError, map } from 'rxjs/operators'
 import { of } from 'rxjs'
-import { toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { FormControl, ReactiveFormsModule } from '@angular/forms'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { ImageProcessorComponent } from './img-processor'
+import { CommonModule } from '@angular/common'
+import { ReactiveFormsModule } from '@angular/forms'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { MatSlideToggleModule } from '@angular/material/slide-toggle'
+import { RouterOutlet } from '@angular/router'
 
 @Component({
   selector: 'app-root',
@@ -19,81 +20,22 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
     MatSlideToggleModule,
     ReactiveFormsModule,
     MatProgressSpinnerModule,
+    ImageProcessorComponent,
   ],
   template: `
     <main class="flex items-center p-16 h-dvh flex-col gap-10 min-h-dvh">
       <h1 class="text-indigo-700 text-5xl">Yooooo man! Welcome to <span class="font-bold">imaginaer</span></h1>
-      <div class="flex-1 flex flex-col justify-center items-center self-stretch gap-4">
-        @if (processingErrored$()) {
-          <p class="text-red-500 text-5xl">Processing errored</p>
-        } @else if (originalImgUrl()) {
-          <mat-slide-toggle [formControl]="shouldDisplayProcessedControl">Grayscale</mat-slide-toggle>
-          @if (isProcessedImgLoading()) {
-            <mat-spinner diameter="50"></mat-spinner>
-          } @else if (visibleImgSrc()) {
-            <div class="self-stretch flex-1 relative">
-              <img [src]="visibleImgSrc()" class="absolute w-full h-full object-contain" />
-            </div>
-          }
-        } @else {
-          <input type="file" (change)="onOriginalImgChange($event)" />
-        }
-      </div>
-      <p class="mt-auto">health: {{ health$ | async }}</p>
+      <app-img-processor />
+      <p class="mt-auto">health: {{ health() }}</p>
     </main>
   `,
 })
 export class AppComponent {
   readonly http = inject(HttpClient)
-
-  onOriginalImgChange(event: Event) {
-    const files = (event.target as HTMLInputElement).files
-    if (!files || files.length === 0) return
-
-    const reader = new FileReader()
-    reader.readAsDataURL(files[0])
-    reader.onload = () => {
-      this.originalImgUrl.set(reader.result as string)
-    }
-  }
-  originalImgUrl = signal<string | null>(null)
-
-  shouldDisplayProcessedControl = new FormControl(false)
-  shouldDisplayProcessed = toSignal(this.shouldDisplayProcessedControl.valueChanges)
-  processingRequested$ = this.shouldDisplayProcessedControl.valueChanges.pipe(filter(Boolean), take(1))
-
-  processingErrored$ = signal(false)
-
-  processedImgSrc$ = this.processingRequested$.pipe(
-    map(() => this.originalImgUrl()),
-    filter(Boolean),
-    switchMap((img) => this.http.post<string>('api/grayscale', { img })),
-    catchError(() => {
-      this.processingErrored$.set(true)
-      return of(null)
-    }),
-    map((url) => url),
-  )
-  processedImgSrc = toSignal(this.processedImgSrc$)
-
-  isProcessedImgLoading = toSignal(
-    toObservable(
-      computed(() => {
-        const shouldProcess = this.shouldDisplayProcessed()
-        const processedImgSrc = this.processedImgSrc()
-        return shouldProcess && !processedImgSrc
-      }),
-    ).pipe(debounceTime(200)),
-  )
-
-  visibleImgSrc = computed(() => {
-    const original = this.originalImgUrl()
-    const processed = this.processedImgSrc()
-    return this.shouldDisplayProcessed() && processed ? processed : original
-  })
-
-  health$ = this.http.get('api/health').pipe(
-    map(() => 'all good'),
-    catchError((err: HttpErrorResponse) => of(`not good, status: ${err.status}`)),
+  health = toSignal(
+    this.http.get('api/health').pipe(
+      map(() => 'all good'),
+      catchError((err: HttpErrorResponse) => of(`not good, status: ${err.status}`)),
+    ),
   )
 }
