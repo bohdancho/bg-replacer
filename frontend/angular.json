@@ -7,7 +7,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "bg-replacer": {
+    "imaginaer": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -79,10 +79,10 @@
           },
           "configurations": {
             "production": {
-              "buildTarget": "bg-replacer:build:production"
+              "buildTarget": "imaginaer:build:production"
             },
             "development": {
-              "buildTarget": "bg-replacer:build:development"
+              "buildTarget": "imaginaer:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -90,7 +90,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "buildTarget": "bg-replacer:build"
+            "buildTarget": "imaginaer:build"
           }
         },
         "test": {

@@ -9,20 +9,18 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gorilla/mux"
-	"imagine/codecs"
+	"imaginaer/codecs"
 )
 
 func main() {
-	r := mux.NewRouter()
-	r.HandleFunc("/grayscale", grayscaleHandler)
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "Welcome to the image processing service!")
+	http.HandleFunc("/grayscale", grayscaleHandler)
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "{\"ok\":\"true\"}")
 	})
 
-	http.Handle("/", r)
-	fmt.Println("Server started at http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	port := 8080
+	fmt.Printf("Server started at http://localhost:%v\n", port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", port), nil))
 }
 
 type ImgDTO struct {
