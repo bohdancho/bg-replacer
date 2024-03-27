@@ -10,17 +10,12 @@ import (
 	"image/png"
 	"io"
 	"strings"
-
-	"github.com/kolesa-team/go-webp/decoder"
-	"github.com/kolesa-team/go-webp/encoder"
-	"github.com/kolesa-team/go-webp/webp"
 )
 
 type ImageFormat string
 
 const (
 	imageFormatPng  ImageFormat = "image/png"
-	imageFormatWebp ImageFormat = "image/webp"
 	imageFormatJpeg ImageFormat = "image/jpeg"
 )
 
@@ -35,20 +30,10 @@ var (
 		imageFormatJpeg: func(w io.Writer, m image.Image) error {
 			return jpeg.Encode(w, m, &jpeg.Options{Quality: 20})
 		},
-		imageFormatWebp: func(w io.Writer, m image.Image) error {
-			options, err := encoder.NewLossyEncoderOptions(encoder.PresetDefault, 75)
-			if err != nil {
-				return err
-			}
-			return webp.Encode(w, m, options)
-		},
 	}
 	decoders = map[ImageFormat]Decoder{
 		imageFormatPng:  png.Decode,
 		imageFormatJpeg: jpeg.Decode,
-		imageFormatWebp: func(r io.Reader) (image.Image, error) {
-			return webp.Decode(r, &decoder.Options{})
-		},
 	}
 )
 
