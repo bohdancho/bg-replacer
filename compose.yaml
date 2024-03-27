@@ -3,12 +3,14 @@ version: '3'
 services:
   frontend:
     build: ./frontend
+    image: bohdancho/imaginaer-frontend
     ports:
       - 4200:80
     networks:
       - app
   backend:
     build: ./backend
+    image: bohdancho/imaginaer-backend
     networks:
       - app
 
