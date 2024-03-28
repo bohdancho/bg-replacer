@@ -2,7 +2,7 @@ import { HttpClient, HttpClientModule, HttpErrorResponse } from '@angular/common
 import { Component, Signal, effect, inject, signal } from '@angular/core'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { RouterOutlet } from '@angular/router'
-import { filter, map, switchMap, catchError, of, distinctUntilChanged, tap, Subject } from 'rxjs'
+import { filter, map, switchMap, catchError, of, distinctUntilChanged, tap } from 'rxjs'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { ImgViewComponent } from './img-view.component'
 import { CommonModule } from '@angular/common'
