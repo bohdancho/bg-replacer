@@ -32,7 +32,7 @@ import { RouterOutlet } from '@angular/router'
 export class AppComponent {
   readonly http = inject(HttpClient)
   health = toSignal(
-    this.http.get('/health').pipe(
+    this.http.get('api/health').pipe(
       map(() => 'all good'),
       catchError((err: HttpErrorResponse) => {
         return of(`not good, status: ${err.status}`)
