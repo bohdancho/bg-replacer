@@ -1,16 +1,18 @@
-import { HttpClient, HttpClientModule, HttpErrorResponse } from '@angular/common/http'
-import { Component, Signal, effect, inject, signal } from '@angular/core'
+import { HttpClientModule, HttpErrorResponse } from '@angular/common/http'
+import { Component, Signal, inject, signal } from '@angular/core'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { RouterOutlet } from '@angular/router'
-import { filter, map, switchMap, catchError, of, distinctUntilChanged, tap } from 'rxjs'
+import { filter, map, switchMap, catchError, of, distinctUntilChanged } from 'rxjs'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { ImgViewComponent } from './img-view.component'
 import { CommonModule } from '@angular/common'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { ImgApiService } from '../img-api.service'
 
 type ImgProcessorState = {
   processingEnabled: Signal<boolean | undefined>
   originalSrc: string | null
+  originalBlob: Blob | null
   processedSrc: string | null
   processingError: string | null
 }
@@ -18,7 +20,15 @@ type ImgProcessorState = {
 @Component({
   selector: 'app-img-processor',
   standalone: true,
-  imports: [RouterOutlet, HttpClientModule, CommonModule, MatSlideToggleModule, ReactiveFormsModule, ImgViewComponent],
+  imports: [
+    RouterOutlet,
+    HttpClientModule,
+    CommonModule,
+    MatSlideToggleModule,
+    ReactiveFormsModule,
+    ImgViewComponent,
+    HttpClientModule,
+  ],
   host: {
     class: 'flex-1 flex flex-col justify-center items-center self-stretch gap-4',
   },
@@ -38,11 +48,12 @@ type ImgProcessorState = {
   `,
 })
 export class ImageProcessorComponent {
-  readonly http = inject(HttpClient)
+  imgApi = inject(ImgApiService)
 
   processingControl = new FormControl(false)
   state = signal<ImgProcessorState>({
     processingEnabled: toSignal(this.processingControl.valueChanges.pipe(map(Boolean))),
+    originalBlob: null,
     originalSrc: null,
     processedSrc: null,
     processingError: null,
@@ -54,51 +65,29 @@ export class ImageProcessorComponent {
   }
 
   onOriginalChange(event: Event) {
-    const files = (event.target as HTMLInputElement).files
-    if (!files || files.length === 0) return
+    const file = (event.target as HTMLInputElement).files?.item(0)
+    if (!file) return
 
-    const reader = new FileReader()
-    reader.readAsDataURL(files[0])
-    reader.onload = () => {
-      this.state.update((state) => ({
-        ...state,
-        originalSrc: reader.result as string,
-      }))
-    }
+    this.state.update((state) => ({
+      ...state,
+      originalSrc: URL.createObjectURL(file),
+      originalBlob: file,
+    }))
   }
 
   processingRequest$ = this.processingControl.valueChanges.pipe(
-    tap(console.log),
+    map(() => this.state().originalBlob),
     filter(Boolean),
-    map(() => this.state().originalSrc),
     distinctUntilChanged(),
-    switchMap((img) =>
-      this.http.post<string>('api/grayscale', { img }).pipe(
-        catchError((err) => {
-          this.handleProcessingError(err)
-          return of(null)
-        }),
-      ),
-    ),
+    switchMap((blob) => this.imgApi.grayscale(blob)),
   )
 
-  handleProcessingError(err: HttpErrorResponse) {
-    let msg = 'Unknown error'
-    if (typeof err.error === 'string') {
-      msg = err.error
-    } else if (err.message) {
-      msg = err.message
-    }
-    this.state.update((state) => ({ ...state, processingError: msg }))
-  }
-
   constructor() {
-    this.processingRequest$.pipe(takeUntilDestroyed()).subscribe((src) => {
-      return this.state.update((state) => ({ ...state, processedSrc: src }))
-    })
-
-    effect(() => {
-      console.log(this.state())
+    this.processingRequest$.pipe(takeUntilDestroyed()).subscribe(({ blob, error }) => {
+      if (error !== null) {
+        return this.state.update((state) => ({ ...state, processingError: error }))
+      }
+      return this.state.update((state) => ({ ...state, processedSrc: URL.createObjectURL(blob) }))
     })
   }
 }

@@ -2,82 +2,58 @@ package codecs
 
 import (
 	"bytes"
-	"encoding/base64"
-	"errors"
 	"fmt"
 	"image"
 	"image/jpeg"
 	"image/png"
 	"io"
-	"strings"
 )
 
-type ImageFormat string
+type SupportedImageFormats string
 
 const (
-	imageFormatPng  ImageFormat = "image/png"
-	imageFormatJpeg ImageFormat = "image/jpeg"
+	imageFormatPng  SupportedImageFormats = "image/png"
+	imageFormatJpeg SupportedImageFormats = "image/jpeg"
 )
-
-var ErrUnsupportedImageFormat = errors.New("unsupported image format")
 
 type Encoder func(w io.Writer, m image.Image) error
 type Decoder func(r io.Reader) (image.Image, error)
 
 var (
-	encoders = map[ImageFormat]Encoder{
+	encoders = map[SupportedImageFormats]Encoder{
 		imageFormatPng: png.Encode,
 		imageFormatJpeg: func(w io.Writer, m image.Image) error {
 			return jpeg.Encode(w, m, &jpeg.Options{Quality: 20})
 		},
 	}
-	decoders = map[ImageFormat]Decoder{
+	decoders = map[SupportedImageFormats]Decoder{
 		imageFormatPng:  png.Decode,
 		imageFormatJpeg: jpeg.Decode,
 	}
 )
 
-func DecodeImage(s string) (image.Image, ImageFormat, error) {
-	header, content, found := strings.Cut(s, ";base64,")
-	if !found {
-		return nil, "", errors.New("no ';base64,' separator found")
-	}
-	b, err := base64.StdEncoding.DecodeString(content)
-	if err != nil {
-		return nil, "", err
-	}
-
-	format := ImageFormat(strings.TrimPrefix(header, "data:"))
-
+func DecodeImage(r io.Reader, format SupportedImageFormats) (image.Image, error) {
 	decoder := decoders[format]
-	if decoder == nil {
-		return nil, "", ErrUnsupportedImageFormat
-	}
-
-	var decodedImage image.Image
-	decodedImage, err = decoder(bytes.NewReader(b))
-	if err != nil {
-		return nil, "", err
-	}
-
-	return decodedImage, format, nil
+	return decoder(r)
 }
 
-func EncodeImage(img image.Image, format ImageFormat) (imgSrc string, err error) {
+func EncodeImage(img image.Image, format SupportedImageFormats) (blob []byte, err error) {
 	encoder := encoders[format]
-	if encoder == nil {
-		return "", ErrUnsupportedImageFormat
-	}
 
 	var buf bytes.Buffer
 	err = encoder(&buf, img)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	image64 := base64.StdEncoding.EncodeToString(buf.Bytes())
-	header := fmt.Sprintf("data:image/%s;base64,", format)
+	return buf.Bytes(), nil
+}
 
-	responseBytes := append([]byte(header), image64...)
-	return string(responseBytes), nil
+func AssertSupportedFormat(str string) (SupportedImageFormats, error) {
+	format := SupportedImageFormats(str)
+	switch format {
+	case imageFormatPng, imageFormatJpeg:
+		return format, nil
+	}
+	return "", fmt.Errorf("unsupported format: %s", str)
 }
