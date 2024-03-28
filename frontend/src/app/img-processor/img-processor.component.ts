@@ -1,4 +1,3 @@
-import { HttpClientModule } from '@angular/common/http'
 import { Component, Signal, inject, signal } from '@angular/core'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { RouterOutlet } from '@angular/router'
@@ -20,15 +19,7 @@ type ImgProcessorState = {
 @Component({
   selector: 'app-img-processor',
   standalone: true,
-  imports: [
-    RouterOutlet,
-    HttpClientModule,
-    CommonModule,
-    MatSlideToggleModule,
-    ReactiveFormsModule,
-    ImgViewComponent,
-    HttpClientModule,
-  ],
+  imports: [RouterOutlet, CommonModule, MatSlideToggleModule, ReactiveFormsModule, ImgViewComponent],
   host: {
     class: 'flex-1 flex flex-col justify-center items-center self-stretch gap-4',
   },

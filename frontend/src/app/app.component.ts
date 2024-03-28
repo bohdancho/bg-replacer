@@ -1,4 +1,4 @@
-import { HttpClient, HttpClientModule, HttpErrorResponse } from '@angular/common/http'
+import { HttpClient, HttpErrorResponse } from '@angular/common/http'
 import { Component, inject } from '@angular/core'
 import { catchError, map } from 'rxjs/operators'
 import { of } from 'rxjs'
@@ -15,7 +15,6 @@ import { RouterOutlet } from '@angular/router'
   standalone: true,
   imports: [
     RouterOutlet,
-    HttpClientModule,
     CommonModule,
     MatSlideToggleModule,
     ReactiveFormsModule,
@@ -33,9 +32,11 @@ import { RouterOutlet } from '@angular/router'
 export class AppComponent {
   readonly http = inject(HttpClient)
   health = toSignal(
-    this.http.get('api/health').pipe(
+    this.http.get('/health').pipe(
       map(() => 'all good'),
-      catchError((err: HttpErrorResponse) => of(`not good, status: ${err.status}`)),
+      catchError((err: HttpErrorResponse) => {
+        return of(`not good, status: ${err.status}`)
+      }),
     ),
   )
 }
