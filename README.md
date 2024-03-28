@@ -1,13 +1,19 @@
 # An image processing fullstack app built with Go + Angular.
+
+## Development:
+```
+cd frontend; pnpm i; pnpm start
+cd backend; air
+```
  
 ## Deployment:
-First build and push images locally:
+First build and push the image locally:
 ```
-docker-compose build
-docker-compose push
+docker run -d -p 80:8080 bohdancho/imaginaer
+docker push bohdancho/imaginaer
 ```
-Then clone the repo, pull and run them on server:
+Then clone the repo, pull and run them it the server:
 ```
-docker-compose pull
-docker-compose up
+docker pull bohdancho/imaginaer
+docker run -dp 80:8080 bohdancho/imaginaer
 ```

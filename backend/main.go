@@ -13,10 +13,11 @@ import (
 )
 
 func main() {
-	http.HandleFunc("/grayscale", grayscaleHandler)
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/grayscale", grayscaleHandler)
+	http.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "{\"ok\":\"true\"}")
 	})
+	http.Handle("/", http.FileServer(http.Dir("./static")))
 
 	port := 8080
 	fmt.Printf("Server started at http://localhost:%v\n", port)
