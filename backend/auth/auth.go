@@ -1,32 +1,33 @@
-package main
+package auth
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
 )
 
+type User struct {
+	login string
+}
+type Session struct {
+	expires time.Time
+	user    User
+}
+
 var users = map[string]string{
 	"admin": "1",
 }
-
 var sessions = map[string]Session{}
-
-type Session struct {
-	expires time.Time
-	login   string
-}
 
 type registrationDTO struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
 }
 
-func registrationHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(sessions)
+func RegistrationHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -54,11 +55,7 @@ type loginDTO struct {
 	Password string `json:"password"`
 }
 
-const sessionCookieName = "session_token"
-const sessionMaxAge = time.Hour * 24 * 14
-const sessionMaxAgeSeconds = int(sessionMaxAge) / int(time.Second)
-
-func loginHandler(w http.ResponseWriter, r *http.Request) {
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -81,20 +78,20 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	expires := time.Now().Add(sessionMaxAge)
 
 	sessions[sessionId] = Session{
-		login:   payload.Login,
+		user:    User{login: payload.Login},
 		expires: expires,
 	}
 	setSessionCookie(w, sessionId)
 	w.WriteHeader(http.StatusOK)
 }
 
-func logoutHandler(w http.ResponseWriter, r *http.Request) {
+func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
-	sessionCookie, err := r.Cookie(sessionCookieName)
+	sessionCookie, err := getSessionCookie(r)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -111,51 +108,18 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func deleteSessionCookie(w http.ResponseWriter) {
-	c := &http.Cookie{
-		Name:     sessionCookieName,
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		Secure:   true,
-		HttpOnly: true,
-	}
-	http.SetCookie(w, c)
-}
-
-func setSessionCookie(w http.ResponseWriter, sessionId string) {
-	sessionCookie := http.Cookie{
-		Name:     sessionCookieName,
-		Value:    sessionId,
-		MaxAge:   sessionMaxAgeSeconds,
-		Secure:   true,
-		HttpOnly: true,
-		Path:     "/",
-	}
-	http.SetCookie(w, &sessionCookie)
-}
-
-func protectedHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	sessionCookie, err := r.Cookie(sessionCookieName)
+func GetUser(r *http.Request) (User, error) {
+	sessionCookie, err := getSessionCookie(r)
 	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
+		return User{}, errors.New("no session cookie found")
 	}
 	sessionId := sessionCookie.Value
 
 	session, ok := sessions[sessionId]
-	hasExpired := ok && session.expires.Compare(time.Now()) == -1
 
-	if !ok || hasExpired {
-		deleteSessionCookie(w)
-		w.WriteHeader(http.StatusUnauthorized)
-		return
+	if !ok {
+		return User{}, errors.New("no session matches the session cookie")
 	}
 
-	w.WriteHeader(http.StatusOK)
+	return session.user, nil
 }
