@@ -9,6 +9,13 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: debug
+      - shell: bash 
+        env:
+          SUPER_SECRET: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        run: |
+          echo "$SUPER_SECRET"
+        
       - uses: actions/checkout@v3
       - uses: pnpm/action-setup@v3
         with:
