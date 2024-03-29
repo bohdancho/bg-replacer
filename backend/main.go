@@ -13,9 +13,13 @@ import (
 func main() {
 	http.HandleFunc("/api/grayscale", grayscaleHandler)
 	http.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "{\"ok\":\"true\"}")
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte("{\"ok\":\"true\"}"))
 	})
-	http.Handle("/", http.FileServer(http.Dir("./static")))
+	http.HandleFunc("/api/login", loginHandler)
+	http.HandleFunc("/api/logout", logoutHandler)
+	http.HandleFunc("/api/registration", registrationHandler)
+	http.HandleFunc("/api/protected", protectedHandler)
 
 	port := 8080
 	fmt.Printf("Server started at http://localhost:%v\n", port)
@@ -23,6 +27,11 @@ func main() {
 }
 
 func grayscaleHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed, use POST", http.StatusMethodNotAllowed)
+		return
+	}
+
 	contentType := r.Header.Get("Content-Type")
 	format, err := codecs.AssertSupportedFormat(contentType)
 	if err != nil {
