@@ -10,13 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: debug
-        env:
-          SUPER_SECRET: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        run: |
-          echo "$SUPER_SECRET"
-        
-      - uses: actions/checkout@v3
       - uses: pnpm/action-setup@v3
         with:
           version: 8
@@ -27,11 +20,11 @@ jobs:
           pnpm ng build --configuration production 
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: eu-central-1
 
       - name: Deploy static site to S3 bucket
         working-directory: ./frontend
