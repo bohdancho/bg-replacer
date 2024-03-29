@@ -8,13 +8,13 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./frontend
     steps:
       - uses: actions/checkout@v3
       - uses: pnpm/action-setup@v3
+        with:
+          version: 8
       - name: Build
+        working-directory: ./frontend
         run: |
           pnpm install --frozen-lockfile
           pnpm ng build --configuration production 
@@ -27,4 +27,5 @@ jobs:
           aws-region: us-east-1
 
       - name: Deploy static site to S3 bucket
+        working-directory: ./frontend
         run: s3 cp dist/browser s3://imaginaer-static
