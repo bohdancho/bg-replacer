@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"imaginaer/auth"
+	_ "imaginaer/db"
 	"imaginaer/processing"
 )
 
@@ -13,7 +14,7 @@ func main() {
 	http.HandleFunc("/api/grayscale", processing.GrayscaleHandler)
 	http.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("{\"ok\":\"true\"}"))
+		w.Write([]byte(`{"ok":"true"}`))
 	})
 	http.HandleFunc("/api/login", auth.LoginHandler)
 	http.HandleFunc("/api/logout", auth.LogoutHandler)
@@ -26,10 +27,10 @@ func main() {
 }
 
 func protectedHandler(w http.ResponseWriter, r *http.Request) {
-	user, err := auth.GetUser(r)
-	if err != nil {
-		http.Error(w, "", http.StatusUnauthorized)
-		return
-	}
-	fmt.Fprintf(w, "all good, you are %v", user)
+	// user, err := auth.GetUser(r)
+	// if err != nil {
+	// 	http.Error(w, "", http.StatusUnauthorized)
+	// 	return
+	// }
+	// fmt.Fprintf(w, "all good, you are %v", user)
 }
