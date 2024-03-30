@@ -5,11 +5,13 @@ import (
 	"testing"
 )
 
-func TestAddGetDeleteUser(t *testing.T) {
+func TestUserAddGetDelete(t *testing.T) {
 	user := User{username: "TestAddGetDeleteUser", password: "pwd"}
-	id, err := addUser(user)
+	id, err := createUser(user)
+	user.ID = id
+
 	if err != nil {
-		t.Fatalf("addUser: %v", err)
+		t.Fatalf("createUser: %v", err)
 	}
 
 	t.Cleanup(func() {
@@ -19,21 +21,38 @@ func TestAddGetDeleteUser(t *testing.T) {
 		}
 	})
 
-	u, err := userByUsername(user.username)
-	if u.ID != id {
-		t.Fatalf("userByUsername expected id: %v, received id: %v", id, u.ID)
+	byUsername, err := userByUsername(user.username)
+	if err != nil {
+		t.Fatalf("userByUsername: %v", err)
 	}
-	if u.username != user.username {
-		t.Fatalf("userByUsername expected username: %v, received username: %v", user.username, u.username)
+	if byUsername.ID != user.ID {
+		t.Fatalf("userByUsername expected id: %v, received id: %v", user.ID, byUsername.ID)
 	}
-	if u.password != user.password {
-		t.Fatalf("userByUsername expected password: %v, received password: %v", user.password, u.password)
+	if byUsername.username != user.username {
+		t.Fatalf("userByUsername expected username: %v, received username: %v", user.username, byUsername.username)
+	}
+	if byUsername.password != user.password {
+		t.Fatalf("userByUsername expected password: %v, received password: %v", user.password, byUsername.password)
+	}
+
+	byId, err := userByID(id)
+	if err != nil {
+		t.Fatalf("userById: %v", err)
+	}
+	if byId.ID != user.ID {
+		t.Fatalf("userByID expected id: %v, received id: %v", user.ID, byId.ID)
+	}
+	if byId.username != user.username {
+		t.Fatalf("userByID expected username: %v, received username: %v", user.username, byId.username)
+	}
+	if byId.password != user.password {
+		t.Fatalf("userByID expected password: %v, received password: %v", user.password, byId.password)
 	}
 }
 
 func TestAddUserConflict(t *testing.T) {
 	user := User{username: "TestAddUserConflict", password: "pwd"}
-	id, err := addUser(user)
+	id, err := createUser(user)
 	if err != nil {
 		t.Fatalf("error while creating the first user: %v", err)
 	}
@@ -41,7 +60,7 @@ func TestAddUserConflict(t *testing.T) {
 		deleteUser(id)
 	})
 
-	_, err = addUser(user)
+	_, err = createUser(user)
 	if err != ErrUsernameTaken {
 		t.Fatalf("expected ErrUsernameTaken, got %v", err)
 	}

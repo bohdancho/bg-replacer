@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 )
@@ -27,10 +28,10 @@ func deleteSessionCookie(w http.ResponseWriter) {
 	http.SetCookie(w, c)
 }
 
-func setSessionCookie(w http.ResponseWriter, sessionId string) {
+func setSessionCookie(w http.ResponseWriter, sessionID SessionID) {
 	sessionCookie := http.Cookie{
 		Name:     sessionCookieName,
-		Value:    sessionId,
+		Value:    fmt.Sprint(sessionID),
 		MaxAge:   sessionMaxAgeSeconds,
 		Secure:   true,
 		HttpOnly: true,

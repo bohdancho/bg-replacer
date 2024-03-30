@@ -16,8 +16,9 @@ type User struct {
 }
 
 var ErrUsernameTaken = errors.New("username taken")
+var ErrUserNotFound = errors.New("user not found")
 
-func addUser(user User) (UserID, error) {
+func createUser(user User) (UserID, error) {
 	result, err := db.DB.Exec("INSERT INTO user (username, password) VALUES (?, ?)", user.username, user.password)
 	if err != nil {
 		if sqlErr, ok := err.(sqlite3.Error); ok {
@@ -50,14 +51,24 @@ func deleteUser(id UserID) error {
 	if err != nil {
 		return err
 	}
-
 	if rowsAffected == 0 {
 		return ErrUserNotFound
 	}
 	return nil
 }
 
-var ErrUserNotFound = errors.New("user not found")
+func userByID(id UserID) (User, error) {
+	var user User
+
+	row := db.DB.QueryRow("SELECT * FROM user WHERE id = ?", id)
+	if err := row.Scan(&user.ID, &user.username, &user.password); err != nil {
+		if err == sql.ErrNoRows {
+			return user, ErrUserNotFound
+		}
+		return user, err
+	}
+	return user, nil
+}
 
 func userByUsername(username string) (User, error) {
 	var user User

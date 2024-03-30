@@ -2,28 +2,23 @@ package auth
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"time"
+	"strconv"
 )
-
-type SessionID int64
-type Session struct {
-	ID      SessionID
-	expires time.Time
-	userID  UserID
-}
 
 type registrationDTO struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
+// TODO: test full auth flow
 func RegistrationHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
+
+	// TODO: validation
 
 	var payload registrationDTO
 	err := json.NewDecoder(r.Body).Decode(&payload)
@@ -33,7 +28,7 @@ func RegistrationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := User{username: payload.Username, password: payload.Password}
-	_, err = addUser(user)
+	_, err = createUser(user)
 	if err == ErrUsernameTaken {
 		http.Error(w, ErrUsernameTaken.Error(), http.StatusConflict)
 		return
@@ -51,6 +46,7 @@ type loginDTO struct {
 	Password string `json:"password"`
 }
 
+// TODO: test bad case
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -71,46 +67,59 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	if user.password != payload.Password {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	fmt.Fprint(w, "cool: ", user)
 
-	// sessionId := uuid.New().String()
-	// expires := time.Now().Add(sessionMaxAge)
+	sessionID, err := createSession(user.ID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	// sessions[sessionId] = Session{
-	// 	user:    User{username: payload.Username},
-	// 	expires: expires,
-	// }
-	// setSessionCookie(w, sessionId)
-	// w.WriteHeader(http.StatusOK)
+	setSessionCookie(w, sessionID)
 }
 
+// TODO: test bad case
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	// if r.Method != http.MethodPost {
-	// 	w.WriteHeader(http.StatusMethodNotAllowed)
-	// 	return
-	// }
-	//
-	// sessionCookie, err := getSessionCookie(r)
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusUnauthorized)
-	// 	return
-	// }
-	// sessionId := sessionCookie.Value
-	// _, ok := sessions[sessionId]
-	// if !ok {
-	// 	w.WriteHeader(http.StatusUnauthorized)
-	// 	return
-	// }
-	//
-	// sessions[sessionId] = Session{}
-	// deleteSessionCookie(w)
-	// w.WriteHeader(http.StatusOK)
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	sessionCookie, err := getSessionCookie(r)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	sessionIDInt, err := strconv.Atoi(sessionCookie.Value)
+	sessionID := SessionID(sessionIDInt)
+	if err != nil {
+		deleteSessionCookie(w)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	err = deleteSession(sessionID)
+	if err != nil {
+		if err == ErrSessionNotFound {
+			deleteSessionCookie(w)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	deleteSessionCookie(w)
+	w.WriteHeader(http.StatusOK)
 }
+
+// TODO: test
 
 // func GetUser(r *http.Request) (User, error) {
 // 	sessionCookie, err := getSessionCookie(r)
@@ -120,7 +129,9 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 // 	sessionId := sessionCookie.Value
 //
 // 	session, ok := sessions[sessionId]
-//
+
+// TODO: validate session.expired
+
 // 	if !ok {
 // 		return User{}, errors.New("no session matches the session cookie")
 // 	}
