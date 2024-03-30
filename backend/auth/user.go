@@ -12,7 +12,7 @@ type UserID int64
 type User struct {
 	ID       UserID
 	username string
-	password string
+	password string // TODO: remove password from here
 }
 
 var ErrUsernameTaken = errors.New("username taken")
@@ -59,13 +59,14 @@ func deleteUser(id UserID) error {
 
 func userByID(id UserID) (User, error) {
 	var user User
-
 	row := db.DB.QueryRow("SELECT * FROM user WHERE id = ?", id)
-	if err := row.Scan(&user.ID, &user.username, &user.password); err != nil {
+	err := row.Scan(&user.ID, &user.username, &user.password)
+
+	if err != nil {
 		if err == sql.ErrNoRows {
-			return user, ErrUserNotFound
+			return User{}, ErrUserNotFound
 		}
-		return user, err
+		return User{}, err
 	}
 	return user, nil
 }

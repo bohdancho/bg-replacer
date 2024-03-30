@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestUserAddGetDelete(t *testing.T) {
+func TestUserCreateGetDelete(t *testing.T) {
 	user := User{username: "TestAddGetDeleteUser", password: "pwd"}
 	id, err := createUser(user)
 	user.ID = id
