@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -10,18 +11,50 @@ type registrationDTO struct {
 	Password string `json:"password"`
 }
 
+const (
+	minUsernameLength = 3
+	maxUsernameLength = 24
+	minPasswordLength = 8
+	maxPasswordLength = 40
+)
+
+var (
+	ErrInvalidUsernameLength = fmt.Errorf(
+		"username length must be between %v and %v symbols", minUsernameLength, maxUsernameLength)
+	ErrInvalidPasswordLength = fmt.Errorf(
+		"password length must be between %v and %v symbols", minPasswordLength, maxPasswordLength)
+)
+
+// TODO: tests
+func (r registrationDTO) validate() error {
+	nameLen := len(r.Username)
+	if nameLen < minUsernameLength || nameLen > maxUsernameLength {
+		return ErrInvalidUsernameLength
+	}
+
+	pwdLen := len(r.Password)
+	if pwdLen < minPasswordLength || pwdLen > maxPasswordLength {
+		return ErrInvalidPasswordLength
+	}
+
+	return nil
+}
+
 func RegistrationHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
-	// TODO: validation
-
 	var payload registrationDTO
 	err := json.NewDecoder(r.Body).Decode(&payload)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := payload.validate(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -88,7 +121,7 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	sessionID, err := sessionIDFromCookie(r)
 	if err != nil {
-		deleteSessionCookie(w)
+		removeSessionCookie(w)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -96,7 +129,7 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	err = deleteSession(sessionID)
 	if err != nil {
 		if err == ErrSessionNotFound {
-			deleteSessionCookie(w)
+			removeSessionCookie(w)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -104,13 +137,16 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deleteSessionCookie(w)
+	removeSessionCookie(w)
 	w.WriteHeader(http.StatusOK)
 }
 
-func GetCurrentUser(r *http.Request) (User, error) {
+func GetCurrentUser(w http.ResponseWriter, r *http.Request) (User, error) {
 	sessionID, err := sessionIDFromCookie(r)
 	if err != nil {
+		if err == ErrInvalidSessionCookie {
+			removeSessionCookie(w)
+		}
 		return User{}, err
 	}
 

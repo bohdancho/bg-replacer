@@ -73,7 +73,8 @@ func TestAuthFlow(t *testing.T) {
 		t.Error(err)
 	}
 	getUserReq.AddCookie(sessionCookie)
-	_, err = GetCurrentUser(getUserReq)
+	rr := httptest.NewRecorder()
+	_, err = GetCurrentUser(rr, getUserReq)
 	if err != nil {
 		t.Errorf("GetCurrentUser: %v", err)
 	}
@@ -93,12 +94,37 @@ func TestAuthFlow(t *testing.T) {
 	}
 }
 
+func TestRegisterInvalidPassword(t *testing.T) {
+	payload := registrationDTO{Username: "TestRegisterInvalidPassword", Password: ""}
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("POST", "/api/registration", &buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(RegistrationHandler)
+	handler.ServeHTTP(rr, req)
+
+	status := rr.Code
+	expectedStatus := http.StatusBadRequest
+	if status != expectedStatus {
+		t.Errorf("wrong status code: got %v expected %v",
+			status, expectedStatus)
+	}
+}
+
 func TestGetCurrentUserNoCookie(t *testing.T) {
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = GetCurrentUser(req)
+	w := httptest.NewRecorder()
+	_, err = GetCurrentUser(w, req)
 	if err == nil {
 		t.Errorf("expected an error")
 	}
@@ -113,7 +139,8 @@ func TestGetCurrentUserInvalidCookie(t *testing.T) {
 	cookie := newSessionCookie(0, sessionCookieMaxAge)
 	req.AddCookie(&cookie)
 
-	_, err = GetCurrentUser(req)
+	w := httptest.NewRecorder()
+	_, err = GetCurrentUser(w, req)
 	if err == nil {
 		t.Errorf("expected an error")
 	}

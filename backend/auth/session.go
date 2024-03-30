@@ -96,6 +96,8 @@ const (
 	cookieMaxAgeDel     = cookieMaxAge(-1)
 )
 
+var ErrInvalidSessionCookie = errors.New("invalid session cookie")
+
 func sessionIDFromCookie(r *http.Request) (SessionID, error) {
 	cookie, err := r.Cookie(sessionCookieName)
 	if err != nil {
@@ -103,12 +105,12 @@ func sessionIDFromCookie(r *http.Request) (SessionID, error) {
 	}
 	idInt, err := strconv.Atoi(cookie.Value)
 	if err != nil {
-		return 0, fmt.Errorf("sessionIDFromCookie: %v", err)
+		return 0, ErrInvalidSessionCookie
 	}
 	return SessionID(idInt), nil
 }
 
-func deleteSessionCookie(w http.ResponseWriter) {
+func removeSessionCookie(w http.ResponseWriter) {
 	c := newSessionCookie(0, cookieMaxAgeDel)
 	http.SetCookie(w, &c)
 }
