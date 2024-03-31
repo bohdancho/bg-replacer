@@ -14,7 +14,7 @@ func main() {
 	store := db.NewStore()
 
 	authMux := auth.NewMux(store)
-	http.Handle("/api/auth/", http.StripPrefix("/api/auth", authMux))
+	http.Handle("/api/", http.StripPrefix("/api", authMux))
 
 	processingMux := processing.NewMux()
 	http.Handle("/api/processing/", http.StripPrefix("/api/processing", processingMux))

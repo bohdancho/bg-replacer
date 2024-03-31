@@ -16,7 +16,6 @@ func (s Server) currentUserHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
-// TODO: put this in context?
 func GetCurrentUser(w http.ResponseWriter, r *http.Request, store Store) (UserDTO, error) {
 	sessionToken, err := sessionTokenFromCookie(r)
 	if err != nil {
