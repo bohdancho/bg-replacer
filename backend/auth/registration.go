@@ -57,7 +57,6 @@ var (
 		"password length must be between %v and %v symbols", minPasswordLength, maxPasswordLength)
 )
 
-// TODO: tests
 func (r RegistrationDTO) validate() error {
 	nameLen := len(r.Username)
 	if nameLen < minUsernameLength || nameLen > maxUsernameLength {

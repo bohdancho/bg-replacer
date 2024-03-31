@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 )
@@ -18,7 +17,7 @@ const (
 func sessionTokenFromCookie(r *http.Request) (SessionToken, error) {
 	cookie, err := r.Cookie(sessionCookieName)
 	if err != nil {
-		return "", fmt.Errorf("sessionTokenFromCookie: %w", err)
+		return "", err
 	}
 	return SessionToken(cookie.Value), nil
 }

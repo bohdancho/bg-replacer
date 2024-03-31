@@ -13,6 +13,7 @@ func NewMux(store Store) http.Handler {
 	mux.HandleFunc("/login", server.loginHandler)
 	mux.HandleFunc("/logout", server.logoutHandler)
 	mux.HandleFunc("/registration", server.registrationHandler)
+	mux.HandleFunc("/current_user", server.currentUserHandler)
 	return mux
 }
 
@@ -21,6 +22,11 @@ type User struct {
 	ID       UserID
 	Username string
 	Password string // TODO: remove password from here
+}
+
+type UserDTO struct {
+	ID       UserID `json:"id"`
+	Username string `json:"username"`
 }
 
 type SessionToken string
@@ -57,17 +63,4 @@ type SessionStore interface {
 	UserBySessionToken(token SessionToken) (User, error)
 	SessionByToken(token SessionToken) (Session, error)
 	DeleteSession(token SessionToken) error
-}
-
-// TODO: put this in context?
-func GetCurrentUser(w http.ResponseWriter, r *http.Request, store Store) (User, error) {
-	sessionToken, err := sessionTokenFromCookie(r)
-	if err != nil {
-		if err == ErrInvalidSessionCookie {
-			removeSessionCookie(w)
-		}
-		return User{}, err
-	}
-
-	return store.UserBySessionToken(sessionToken)
 }
