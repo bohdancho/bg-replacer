@@ -3,50 +3,48 @@ package auth
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 )
 
 const sessionCookieName = "session_token"
-const sessionMaxAge = time.Hour * 24 * 14
-const sessionMaxAgeSeconds = int(sessionMaxAge) / int(time.Second)
 
 type cookieMaxAge int
 
 const (
-	sessionCookieMaxAge = cookieMaxAge(60 * 60 * 24 * 14)
+	cookieSessionMaxAge = cookieMaxAge(60 * 60 * 24 * 14)
 	cookieMaxAgeDel     = cookieMaxAge(-1)
 )
 
-func sessionIDFromCookie(r *http.Request) (SessionID, error) {
+func sessionTokenFromCookie(r *http.Request) (SessionToken, error) {
 	cookie, err := r.Cookie(sessionCookieName)
 	if err != nil {
-		return 0, fmt.Errorf("sessionIDFromCookie: %v", err)
+		return "", fmt.Errorf("sessionTokenFromCookie: %w", err)
 	}
-	idInt, err := strconv.Atoi(cookie.Value)
-	if err != nil {
-		return 0, ErrInvalidSessionCookie
-	}
-	return SessionID(idInt), nil
+	return SessionToken(cookie.Value), nil
 }
 
 func removeSessionCookie(w http.ResponseWriter) {
-	c := NewSessionCookie(0, cookieMaxAgeDel)
+	c := NewSessionCookie("del", cookieMaxAgeDel)
 	http.SetCookie(w, &c)
 }
 
-func setSessionCookie(w http.ResponseWriter, sessionID SessionID) {
-	c := NewSessionCookie(sessionID, sessionCookieMaxAge)
+func setSessionCookie(w http.ResponseWriter, sessionToken SessionToken) {
+	c := NewSessionCookie(sessionToken, cookieSessionMaxAge)
 	http.SetCookie(w, &c)
 }
 
-func NewSessionCookie(sessionID SessionID, maxAge cookieMaxAge) http.Cookie {
+func NewSessionCookie(sessionToken SessionToken, maxAge cookieMaxAge) http.Cookie {
 	return http.Cookie{
 		Name:     sessionCookieName,
-		Value:    fmt.Sprint(sessionID),
+		Value:    string(sessionToken),
 		MaxAge:   int(maxAge),
 		Secure:   true,
 		HttpOnly: true,
 		Path:     "/",
 	}
+}
+
+func newSessionExpiresTime() time.Time {
+	t := time.Second * time.Duration(cookieSessionMaxAge)
+	return time.Now().Add(t)
 }

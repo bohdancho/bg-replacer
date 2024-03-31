@@ -1,7 +1,7 @@
 package db
 
 import (
-	"imaginaer/models"
+	"imaginaer/auth"
 	_ "imaginaer/testing_init"
 	"testing"
 	"time"
@@ -10,22 +10,23 @@ import (
 func TestSessionCreateGetDelete(t *testing.T) {
 	store := NewStore()
 
-	userID, _ := store.CreateUser(models.User{Username: "TestSessionCreateDelete", Password: ""})
-	sessionID, err := store.CreateSession(userID, time.Now().Add(1000000))
+	userID, _ := store.CreateUser(auth.User{Username: "TestSessionCreateDelete", Password: ""})
+	token := auth.SessionToken("TestSessionCreateGetDelete")
+	err := store.CreateSession(token, userID, time.Now().Add(1000000))
 	if err != nil {
 		t.Fatalf("CreateSession: %v", err)
 	}
 
-	session, err := store.SessionByID(sessionID)
+	session, err := store.SessionByToken(token)
 	if err != nil {
-		t.Fatalf("SessionByID: %v", err)
+		t.Fatalf("SessionByToken: %v", err)
 	}
 	if session.UserID != userID {
-		t.Fatalf("SessionByID: expected usedID = %v, got %v", userID, session.UserID)
+		t.Fatalf("SessionByToken: expected usedID = %v, got %v", userID, session.UserID)
 	}
 
 	t.Cleanup(func() {
-		err = store.DeleteSession(sessionID)
+		err = store.DeleteSession(token)
 		if err != nil {
 			t.Fatalf("DeleteSession: %v", err)
 		}

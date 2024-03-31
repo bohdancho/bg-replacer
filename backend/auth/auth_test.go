@@ -137,7 +137,7 @@ func TestGetCurrentUserInvalidCookie(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cookie := auth.NewSessionCookie(0, 1000000)
+	cookie := auth.NewSessionCookie("invalid", 1000000)
 	req.AddCookie(&cookie)
 
 	w := httptest.NewRecorder()

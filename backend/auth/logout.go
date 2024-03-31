@@ -8,14 +8,14 @@ func (s Server) logoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID, err := sessionIDFromCookie(r)
+	sessionToken, err := sessionTokenFromCookie(r)
 	if err != nil {
 		removeSessionCookie(w)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	err = s.store.DeleteSession(sessionID)
+	err = s.store.DeleteSession(sessionToken)
 	if err != nil {
 		if err == ErrSessionNotFound {
 			removeSessionCookie(w)

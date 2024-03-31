@@ -23,9 +23,9 @@ type User struct {
 	Password string // TODO: remove password from here
 }
 
-type SessionID int64
+type SessionToken string
 type Session struct {
-	ID      SessionID
+	Token   SessionToken
 	Expires time.Time
 	UserID  UserID
 }
@@ -53,15 +53,15 @@ type UserStore interface {
 }
 
 type SessionStore interface {
-	CreateSession(userID UserID, expires time.Time) (SessionID, error)
-	UserBySessionId(id SessionID) (User, error)
-	SessionByID(id SessionID) (Session, error)
-	DeleteSession(id SessionID) error
+	CreateSession(token SessionToken, userID UserID, expires time.Time) error
+	UserBySessionToken(token SessionToken) (User, error)
+	SessionByToken(token SessionToken) (Session, error)
+	DeleteSession(token SessionToken) error
 }
 
 // TODO: put this in context?
 func GetCurrentUser(w http.ResponseWriter, r *http.Request, store Store) (User, error) {
-	sessionID, err := sessionIDFromCookie(r)
+	sessionToken, err := sessionTokenFromCookie(r)
 	if err != nil {
 		if err == ErrInvalidSessionCookie {
 			removeSessionCookie(w)
@@ -69,5 +69,5 @@ func GetCurrentUser(w http.ResponseWriter, r *http.Request, store Store) (User, 
 		return User{}, err
 	}
 
-	return store.UserBySessionId(sessionID)
+	return store.UserBySessionToken(sessionToken)
 }

@@ -1,7 +1,7 @@
 package db
 
 import (
-	"imaginaer/models"
+	"imaginaer/auth"
 	_ "imaginaer/testing_init"
 	"testing"
 )
@@ -9,7 +9,7 @@ import (
 func TestUserCreateGetDelete(t *testing.T) {
 	store := NewStore()
 
-	user := models.User{Username: "TestAddGetDeleteUser", Password: "pwd"}
+	user := auth.User{Username: "TestAddGetDeleteUser", Password: "pwd"}
 	id, err := store.CreateUser(user)
 	user.ID = id
 
@@ -56,7 +56,7 @@ func TestUserCreateGetDelete(t *testing.T) {
 func TestAddUserConflict(t *testing.T) {
 	store := NewStore()
 
-	user := models.User{Username: "TestAddUserConflict", Password: "pwd"}
+	user := auth.User{Username: "TestAddUserConflict", Password: "pwd"}
 	id, err := store.CreateUser(user)
 	if err != nil {
 		t.Fatalf("error while creating the first user: %v", err)
@@ -66,7 +66,7 @@ func TestAddUserConflict(t *testing.T) {
 	})
 
 	_, err = store.CreateUser(user)
-	if err != models.ErrUsernameTaken {
+	if err != auth.ErrUsernameTaken {
 		t.Fatalf("expected ErrUsernameTaken, got %v", err)
 	}
 }
@@ -75,7 +75,7 @@ func TestDeleteNonexistentUser(t *testing.T) {
 	store := NewStore()
 
 	err := store.DeleteUser(1000000000000000)
-	if err != models.ErrUserNotFound {
+	if err != auth.ErrUserNotFound {
 		t.Fatalf("expected ErrUserNotFound, got %v", err)
 	}
 }

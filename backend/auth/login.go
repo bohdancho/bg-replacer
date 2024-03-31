@@ -1,9 +1,10 @@
 package auth
 
 import (
+	"crypto/rand"
 	"encoding/json"
+	"math/big"
 	"net/http"
-	"time"
 )
 
 type LoginDTO struct {
@@ -38,12 +39,37 @@ func (s Server) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expires := time.Now().Add(sessionMaxAge)
-	sessionID, err := s.store.CreateSession(user.ID, expires)
+	token, err := newSessionToken()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	expires := newSessionExpiresTime()
+
+	err = s.store.CreateSession(token, user.ID, expires)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	setSessionCookie(w, sessionID)
+	setSessionCookie(w, token)
+}
+
+func newSessionToken() (SessionToken, error) {
+	token, error := newRandomString(255)
+	return SessionToken(token), error
+}
+
+func newRandomString(length int) (string, error) {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	result := make([]byte, length)
+
+	for i := range length {
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			return "", err
+		}
+		result[i] = charset[n.Int64()]
+	}
+	return string(result), nil
 }
