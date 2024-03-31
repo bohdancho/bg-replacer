@@ -1,9 +1,11 @@
-package auth
+package auth_test
 
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	"imaginaer/auth"
+	"imaginaer/db"
+	_ "imaginaer/testing_init"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,83 +13,76 @@ import (
 )
 
 func TestAuthFlow(t *testing.T) {
-	regPayload := registrationDTO{Username: "TestLoginLogout", Password: "invalid_password"}
+	store := db.NewStore()
+	mux := auth.NewMux(store)
+
+	regPayload := auth.RegistrationDTO{Username: "TestLoginLogout", Password: "invalid_password"}
 	var regReqBuf bytes.Buffer
 	err := json.NewEncoder(&regReqBuf).Encode(regPayload)
 	if err != nil {
 		t.Fatal(err)
 	}
-	regReq, err := http.NewRequest("POST", "/api/registration", &regReqBuf)
+	regReq, err := http.NewRequest("POST", "/registration", &regReqBuf)
 	if err != nil {
 		t.Fatal(err)
 	}
 	regRR := httptest.NewRecorder()
-	regHandler := http.HandlerFunc(RegistrationHandler)
-	regHandler.ServeHTTP(regRR, regReq)
+	mux.ServeHTTP(regRR, regReq)
 	if status := regRR.Code; status != http.StatusOK {
-		t.Errorf("RegistrationHandler returned wrong status code: got %v expected %v",
+		t.Fatalf("RegistrationHandler returned wrong status code: got %v expected %v",
 			status, http.StatusOK)
 	}
 
 	t.Cleanup(func() {
-		user, err := userByUsername(regPayload.Username)
+		user, err := store.UserByUsername(regPayload.Username)
 		if err != nil {
 			t.Fatal(err)
 		}
-		deleteUser(user.ID)
+		store.DeleteUser(user.ID)
 	})
 
 	var loginReqBuf bytes.Buffer
-	loginPayload := loginDTO(regPayload)
+	loginPayload := auth.LoginDTO(regPayload)
 	err = json.NewEncoder(&loginReqBuf).Encode(loginPayload)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	loginReq, err := http.NewRequest("POST", "/api/login", &loginReqBuf)
+	loginReq, err := http.NewRequest("POST", "/login", &loginReqBuf)
 	if err != nil {
 		t.Fatal(err)
 	}
 	loginRR := httptest.NewRecorder()
-	loginHandler := http.HandlerFunc(LoginHandler)
-	loginHandler.ServeHTTP(loginRR, loginReq)
+	mux.ServeHTTP(loginRR, loginReq)
 	if status := loginRR.Code; status != http.StatusOK {
 		t.Fatalf("LoginHandler returned wrong status code: got %v expected %v",
 			status, http.StatusOK)
-	}
-
-	cookies := loginRR.Result().Cookies()
-	var sessionCookie *http.Cookie
-	fmt.Println(cookies)
-	for _, c := range cookies {
-		if c.Name == sessionCookieName {
-			sessionCookie = c
-		}
-	}
-	if sessionCookie == nil {
-		t.Fatal("LoginHandler did not add session cookie")
 	}
 
 	getUserReq, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
 		t.Error(err)
 	}
-	getUserReq.AddCookie(sessionCookie)
+	for _, c := range loginRR.Result().Cookies() {
+		getUserReq.AddCookie(c)
+	}
+
 	rr := httptest.NewRecorder()
-	_, err = GetCurrentUser(rr, getUserReq)
+	_, err = auth.GetCurrentUser(rr, getUserReq, store)
 	if err != nil {
 		t.Errorf("GetCurrentUser: %v", err)
 	}
 
-	logoutReq, err := http.NewRequest("POST", "/api/logout", strings.NewReader("{}"))
+	logoutReq, err := http.NewRequest("POST", "/logout", strings.NewReader("{}"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	logoutReq.AddCookie(sessionCookie)
+	for _, c := range loginRR.Result().Cookies() {
+		logoutReq.AddCookie(c)
+	}
 
 	logoutRR := httptest.NewRecorder()
-	logoutHandler := http.HandlerFunc(LogoutHandler)
-	logoutHandler.ServeHTTP(logoutRR, logoutReq)
+	mux.ServeHTTP(logoutRR, logoutReq)
 	if status := logoutRR.Code; status != http.StatusOK {
 		t.Errorf("LogoutHandler returned wrong status code: got %v expected %v",
 			status, http.StatusOK)
@@ -95,20 +90,22 @@ func TestAuthFlow(t *testing.T) {
 }
 
 func TestRegisterInvalidPassword(t *testing.T) {
-	payload := registrationDTO{Username: "TestRegisterInvalidPassword", Password: ""}
+	store := db.NewStore()
+	mux := auth.NewMux(store)
+
+	payload := auth.RegistrationDTO{Username: "TestRegisterInvalidPassword", Password: ""}
 	var buf bytes.Buffer
 	err := json.NewEncoder(&buf).Encode(payload)
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, err := http.NewRequest("POST", "/api/registration", &buf)
+	req, err := http.NewRequest("POST", "/registration", &buf)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(RegistrationHandler)
-	handler.ServeHTTP(rr, req)
+	mux.ServeHTTP(rr, req)
 
 	status := rr.Code
 	expectedStatus := http.StatusBadRequest
@@ -119,35 +116,42 @@ func TestRegisterInvalidPassword(t *testing.T) {
 }
 
 func TestGetCurrentUserNoCookie(t *testing.T) {
+	store := db.NewStore()
+
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	w := httptest.NewRecorder()
-	_, err = GetCurrentUser(w, req)
+	_, err = auth.GetCurrentUser(w, req, store)
 	if err == nil {
 		t.Errorf("expected an error")
 	}
 }
 
 func TestGetCurrentUserInvalidCookie(t *testing.T) {
+	store := db.NewStore()
+
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cookie := newSessionCookie(0, sessionCookieMaxAge)
+	cookie := auth.NewSessionCookie(0, 1000000)
 	req.AddCookie(&cookie)
 
 	w := httptest.NewRecorder()
-	_, err = GetCurrentUser(w, req)
+	_, err = auth.GetCurrentUser(w, req, store)
 	if err == nil {
 		t.Errorf("expected an error")
 	}
 }
 
 func TestLoginNoUser(t *testing.T) {
-	payload := loginDTO{
+	store := db.NewStore()
+	mux := auth.NewMux(store)
+
+	payload := auth.LoginDTO{
 		Username: "TestLoginUnauthorized",
 		Password: "some_password",
 	}
@@ -156,14 +160,13 @@ func TestLoginNoUser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, err := http.NewRequest("POST", "/api/login", strings.NewReader("{}"))
+	req, err := http.NewRequest("POST", "/login", strings.NewReader("{}"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(LoginHandler)
-	handler.ServeHTTP(rr, req)
+	mux.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusUnauthorized {
 		t.Errorf("handler returned wrong status code: got %v expected %v",
 			status, http.StatusUnauthorized)
@@ -171,16 +174,22 @@ func TestLoginNoUser(t *testing.T) {
 }
 
 func TestLoginWrongPassword(t *testing.T) {
+	store := db.NewStore()
+	mux := auth.NewMux(store)
+
 	username := "TestLoginWrongPassword"
-	id, err := createUser(User{username: username, password: "valid_password"})
+	id, err := store.CreateUser(auth.User{Username: username, Password: "valid_password"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		deleteUser(id)
+		err := store.DeleteUser(id)
+		if err != nil {
+			t.Fatal(err)
+		}
 	})
 
-	payload := loginDTO{
+	payload := auth.LoginDTO{
 		Username: username,
 		Password: "invalid_password",
 	}
@@ -190,14 +199,13 @@ func TestLoginWrongPassword(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req, err := http.NewRequest("POST", "/api/login", &buf)
+	req, err := http.NewRequest("POST", "/login", &buf)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(LoginHandler)
-	handler.ServeHTTP(rr, req)
+	mux.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusUnauthorized {
 		t.Errorf("handler returned wrong status code: got %v expected %v",
 			status, http.StatusUnauthorized)

@@ -10,7 +10,7 @@ type ImgResponse = { blob: Blob; error: null } | { blob: null; error: string }
 export class ImgApiService {
   readonly http = inject(HttpClient)
   grayscale(blob: Blob): Observable<ImgResponse> {
-    return this.http.post('api/grayscale', blob, { responseType: 'blob' }).pipe(
+    return this.http.post('api/processing/grayscale', blob, { responseType: 'blob' }).pipe(
       map((blob) => ({ blob, error: null })),
       catchError(({ error, message }: HttpErrorResponse) =>
         of({ blob: null, error: this.blobToString(error) || message }),

@@ -1,147 +1,66 @@
 package auth
 
 import (
-	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
+	"time"
 )
 
-type registrationDTO struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+type Server struct {
+	store Store
 }
 
-const (
-	minUsernameLength = 3
-	maxUsernameLength = 24
-	minPasswordLength = 8
-	maxPasswordLength = 40
-)
-
-var (
-	ErrInvalidUsernameLength = fmt.Errorf(
-		"username length must be between %v and %v symbols", minUsernameLength, maxUsernameLength)
-	ErrInvalidPasswordLength = fmt.Errorf(
-		"password length must be between %v and %v symbols", minPasswordLength, maxPasswordLength)
-)
-
-// TODO: tests
-func (r registrationDTO) validate() error {
-	nameLen := len(r.Username)
-	if nameLen < minUsernameLength || nameLen > maxUsernameLength {
-		return ErrInvalidUsernameLength
-	}
-
-	pwdLen := len(r.Password)
-	if pwdLen < minPasswordLength || pwdLen > maxPasswordLength {
-		return ErrInvalidPasswordLength
-	}
-
-	return nil
+type Store interface {
+	UserStore
+	SessionStore
 }
 
-func RegistrationHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	var payload registrationDTO
-	err := json.NewDecoder(r.Body).Decode(&payload)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if err := payload.validate(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	user := User{username: payload.Username, password: payload.Password}
-	_, err = createUser(user)
-	if err == ErrUsernameTaken {
-		http.Error(w, ErrUsernameTaken.Error(), http.StatusConflict)
-		return
-	}
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
+type UserID int64
+type User struct {
+	ID       UserID
+	Username string
+	Password string // TODO: remove password from here
 }
 
-type loginDTO struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+type SessionID int64
+type Session struct {
+	ID      SessionID
+	Expires time.Time
+	UserID  UserID
 }
 
-func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
+var ErrUserNotFound = errors.New("user not found")
+var ErrUsernameTaken = errors.New("username taken")
 
-	var payload loginDTO
-	err := json.NewDecoder(r.Body).Decode(&payload)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+var ErrSessionNotFound = errors.New("session not found")
+var ErrInvalidSessionCookie = errors.New("invalid session cookie")
 
-	user, err := userByUsername(payload.Username)
-	if err != nil {
-		if err == ErrUserNotFound {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	if user.password != payload.Password {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	sessionID, err := createSession(user.ID)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	setSessionCookie(w, sessionID)
+type UserStore interface {
+	CreateUser(user User) (UserID, error)
+	DeleteUser(id UserID) error
+	UserByID(id UserID) (User, error)
+	UserByUsername(username string) (User, error)
 }
 
-func LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	sessionID, err := sessionIDFromCookie(r)
-	if err != nil {
-		removeSessionCookie(w)
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	err = deleteSession(sessionID)
-	if err != nil {
-		if err == ErrSessionNotFound {
-			removeSessionCookie(w)
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	removeSessionCookie(w)
-	w.WriteHeader(http.StatusOK)
+type SessionStore interface {
+	CreateSession(userID UserID, expires time.Time) (SessionID, error)
+	UserBySessionId(id SessionID) (User, error)
+	SessionByID(id SessionID) (Session, error)
+	DeleteSession(id SessionID) error
 }
 
-func GetCurrentUser(w http.ResponseWriter, r *http.Request) (User, error) {
+func NewMux(store Store) http.Handler {
+	mux := http.NewServeMux()
+	server := Server{store: store}
+
+	mux.HandleFunc("/login", server.loginHandler)
+	mux.HandleFunc("/logout", server.logoutHandler)
+	mux.HandleFunc("/registration", server.registrationHandler)
+	return mux
+}
+
+// TODO: put this in context?
+func GetCurrentUser(w http.ResponseWriter, r *http.Request, store Store) (User, error) {
 	sessionID, err := sessionIDFromCookie(r)
 	if err != nil {
 		if err == ErrInvalidSessionCookie {
@@ -150,5 +69,5 @@ func GetCurrentUser(w http.ResponseWriter, r *http.Request) (User, error) {
 		return User{}, err
 	}
 
-	return userBySessionId(sessionID)
+	return store.UserBySessionId(sessionID)
 }

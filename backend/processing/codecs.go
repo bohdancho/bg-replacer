@@ -1,4 +1,4 @@
-package codecs
+package processing
 
 import (
 	"bytes"

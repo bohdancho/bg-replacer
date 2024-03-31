@@ -6,19 +6,23 @@ import (
 	"net/http"
 
 	"imaginaer/auth"
-	_ "imaginaer/db"
+	"imaginaer/db"
 	"imaginaer/processing"
 )
 
 func main() {
-	http.HandleFunc("/api/grayscale", processing.GrayscaleHandler)
+	store := db.NewStore()
+
+	authMux := auth.NewMux(store)
+	http.Handle("/api/auth/", http.StripPrefix("/api/auth", authMux))
+
+	processingMux := processing.NewMux()
+	http.Handle("/api/processing/", http.StripPrefix("/api/processing", processingMux))
+
 	http.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"ok":"true"}`))
 	})
-	http.HandleFunc("/api/login", auth.LoginHandler)
-	http.HandleFunc("/api/logout", auth.LogoutHandler)
-	http.HandleFunc("/api/registration", auth.RegistrationHandler)
 
 	port := 8080
 	fmt.Printf("Server started at http://localhost:%v\n", port)

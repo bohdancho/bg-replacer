@@ -6,12 +6,14 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-var DB *sql.DB
+type Store struct {
+	db *sql.DB
+}
 
-func init() {
+func NewStore() Store {
 	db, err := sql.Open("sqlite3", "db/imaginaer.db")
-	DB = db
 	if err != nil {
 		panic(err)
 	}
+	return Store{db: db}
 }
