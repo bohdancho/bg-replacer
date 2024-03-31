@@ -6,13 +6,14 @@ import (
 	"time"
 )
 
-type Server struct {
-	store Store
-}
+func NewMux(store Store) http.Handler {
+	mux := http.NewServeMux()
+	server := Server{store: store}
 
-type Store interface {
-	UserStore
-	SessionStore
+	mux.HandleFunc("/login", server.loginHandler)
+	mux.HandleFunc("/logout", server.logoutHandler)
+	mux.HandleFunc("/registration", server.registrationHandler)
+	return mux
 }
 
 type UserID int64
@@ -35,6 +36,15 @@ var ErrUsernameTaken = errors.New("username taken")
 var ErrSessionNotFound = errors.New("session not found")
 var ErrInvalidSessionCookie = errors.New("invalid session cookie")
 
+type Server struct {
+	store Store
+}
+
+type Store interface {
+	UserStore
+	SessionStore
+}
+
 type UserStore interface {
 	CreateUser(user User) (UserID, error)
 	DeleteUser(id UserID) error
@@ -47,16 +57,6 @@ type SessionStore interface {
 	UserBySessionId(id SessionID) (User, error)
 	SessionByID(id SessionID) (Session, error)
 	DeleteSession(id SessionID) error
-}
-
-func NewMux(store Store) http.Handler {
-	mux := http.NewServeMux()
-	server := Server{store: store}
-
-	mux.HandleFunc("/login", server.loginHandler)
-	mux.HandleFunc("/logout", server.logoutHandler)
-	mux.HandleFunc("/registration", server.registrationHandler)
-	return mux
 }
 
 // TODO: put this in context?
