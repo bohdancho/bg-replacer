@@ -6,25 +6,18 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { ImageProcessorComponent } from './img-processor'
 import { CommonModule } from '@angular/common'
 import { ReactiveFormsModule } from '@angular/forms'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { RouterOutlet } from '@angular/router'
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [
-    RouterOutlet,
-    CommonModule,
-    MatSlideToggleModule,
-    ReactiveFormsModule,
-    MatProgressSpinnerModule,
-    ImageProcessorComponent,
-  ],
+  imports: [RouterOutlet, CommonModule, ReactiveFormsModule, ImageProcessorComponent],
   template: `
-    <main class="flex items-center p-16 h-dvh flex-col gap-10 min-h-dvh">
-      <h1 class="text-indigo-700 text-5xl">Yooooo man! Welcome to <span class="font-bold">imaginaer</span></h1>
-      <app-img-processor />
+    <main class="flex items-center px-16 py-6 h-dvh flex-col gap-10 min-h-dvh">
+      <h1 class="text-indigo-700 text-center text-5xl">
+        Yooooo man! Welcome to <span class="font-bold">imaginaer</span>
+      </h1>
+      <router-outlet />
       <p class="mt-auto">health: {{ health() }}</p>
     </main>
   `,

@@ -1,12 +1,11 @@
 import { Component, computed, input } from '@angular/core'
 import { toSignal, toObservable } from '@angular/core/rxjs-interop'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { debounceTime } from 'rxjs'
 
 @Component({
   selector: 'app-img-view',
   standalone: true,
-  imports: [MatProgressSpinnerModule],
+  imports: [],
   host: {
     class: 'flex-1 self-stretch relative',
   },
@@ -17,7 +16,7 @@ import { debounceTime } from 'rxjs'
         <p>{{ processingErrorMsg() }}</p>
       </div>
     } @else if (shouldDisplaySpinner()) {
-      <div class="w-full h-full flex justify-center items-center"><mat-spinner diameter="50" /></div>
+      <div class="w-full h-full flex justify-center items-center">loading...</div>
     } @else {
       <img [src]="src()" class="absolute w-full h-full object-contain" />
     }
