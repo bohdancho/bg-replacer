@@ -13,7 +13,7 @@ func NewMux(store Store) http.Handler {
 	mux.HandleFunc("/login", server.loginHandler)
 	mux.HandleFunc("/logout", server.logoutHandler)
 	mux.HandleFunc("/registration", server.registrationHandler)
-	mux.HandleFunc("/current_user", server.currentUserHandler)
+	mux.HandleFunc("/current-user", server.currentUserHandler)
 	return mux
 }
 

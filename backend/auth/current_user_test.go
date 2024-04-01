@@ -46,7 +46,7 @@ func TestCurrentUser(t *testing.T) {
 	}
 
 	getUserRR := httptest.NewRecorder()
-	getUserReq, err := http.NewRequest("GET", "/current_user", nil)
+	getUserReq, err := http.NewRequest("GET", "/current-user", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
