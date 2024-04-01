@@ -36,7 +36,9 @@ export class AuthService {
   }
 
   login(payload: LoginDTO) {
-    return this.http.post<void>('api/login', payload, { responseType: 'json' }).pipe(tap(() => this.fetchUser()))
+    return this.http
+      .post<void>('api/login', payload, { responseType: 'json' })
+      .pipe(tap(() => this.fetchUser()))
   }
 
   register(payload: RegistrationDTO) {

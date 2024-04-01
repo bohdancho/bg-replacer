@@ -1,7 +1,7 @@
 import { NgIf } from '@angular/common'
 import { HttpErrorResponse } from '@angular/common/http'
 import { Component, computed, inject, signal } from '@angular/core'
-import { FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms'
+import { Validators, ReactiveFormsModule, FormBuilder } from '@angular/forms'
 import { RouterLink } from '@angular/router'
 import { take } from 'rxjs'
 import { AuthService } from './auth.service'
@@ -17,41 +17,65 @@ import { AuthService } from './auth.service'
         <p class="text-center">You are now authorized</p>
       </div>
     } @else {
-      <form class="flex flex-col gap-4 w-80 max-w-full" [formGroup]="form" (submit)="onSubmit($event)">
+      <form
+        class="flex flex-col gap-4 w-80 max-w-full"
+        [formGroup]="form"
+        (submit)="onSubmit($event)"
+      >
         <h2 class="text-2xl my-0 self-center">Login</h2>
         <input type="text" formControlName="username" placeholder="Username" />
         @if (form.dirty) {
-          <div *ngIf="form.controls.username.errors?.['required']">Username is required.</div>
+          <div *ngIf="form.controls.username.errors?.['required']">
+            Username is required.
+          </div>
         }
-        <input type="password" formControlName="password" placeholder="Password" />
+        <input
+          type="password"
+          formControlName="password"
+          placeholder="Password"
+        />
         @if (form.dirty) {
-          <div *ngIf="form.controls.password.errors?.['required']">Password is required.</div>
+          <div *ngIf="form.controls.password.errors?.['required']">
+            Password is required.
+          </div>
         }
         <button
           type="submit"
-          [disabled]="!this.form.valid || pending()"
+          [disabled]="pending()"
           class="bg-blue-500 text-white border-none rounded-md cursor-pointer disabled:cursor-auto disabled:bg-gray-300 py-2"
         >
           Sign in
         </button>
-        <div *ngIf="invalidCredentials()">The provided username or password is incorrect.</div>
-        <div *ngIf="internalServerError()">An unexpected server error occured.</div>
+        <div *ngIf="invalidCredentials()">
+          The provided username or password is incorrect.
+        </div>
+        <div *ngIf="internalServerError()">
+          An unexpected server error occured.
+        </div>
       </form>
     }
   `,
 })
 export class LoginPageComponent {
   auth = inject(AuthService)
+  fb = inject(FormBuilder)
 
   pending = signal(false)
-  form = new FormGroup({
-    username: new FormControl('', [Validators.required]),
-    password: new FormControl('', [Validators.required]),
-  })
+  form = this.fb.group(
+    {
+      username: ['', [Validators.required]],
+      password: ['', [Validators.required]],
+    },
+    { updateOn: 'submit' },
+  )
 
-  responseErrorCode = signal<number | null>(null)
-  invalidCredentials = computed(() => (this.responseErrorCode() === 401 ? true : false))
-  internalServerError = computed(() => (this.responseErrorCode() === 500 ? true : false))
+  private responseErrorCode = signal<number | null>(null)
+  invalidCredentials = computed(() =>
+    this.responseErrorCode() === 401 ? true : false,
+  )
+  internalServerError = computed(() =>
+    this.responseErrorCode() === 500 ? true : false,
+  )
 
   onSubmit(e: Event) {
     e.preventDefault()
@@ -68,8 +92,11 @@ export class LoginPageComponent {
             this.form.reset()
           },
           error: (error: HttpErrorResponse) => {
+            this.pending.set(false)
             this.responseErrorCode.set(error.status)
-            this.form.valueChanges.pipe(take(1)).subscribe(() => this.responseErrorCode.set(null))
+            this.form.valueChanges
+              .pipe(take(1))
+              .subscribe(() => this.responseErrorCode.set(null))
           },
         })
     }
