@@ -12,11 +12,18 @@ import { AuthService } from './auth/auth.service'
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CommonModule, ReactiveFormsModule, ImageProcessorComponent, RouterLink],
+  imports: [
+    RouterOutlet,
+    CommonModule,
+    ReactiveFormsModule,
+    ImageProcessorComponent,
+    RouterLink,
+  ],
   template: `
     <main class="flex items-center px-16 py-6 h-dvh flex-col gap-10 min-h-dvh">
       <h1 class="text-indigo-700 text-center text-5xl">
-        {{ greeting() }} Welcome to <a routerLink="/" class="underline font-bold">imaginaer</a>
+        {{ greeting() }} Welcome to
+        <a routerLink="/" class="underline font-bold">imaginaer</a>
       </h1>
       <router-outlet />
       <div class="mt-auto">

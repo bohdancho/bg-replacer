@@ -1,7 +1,7 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http'
-import { Injectable, inject, signal } from '@angular/core'
-import { toObservable } from '@angular/core/rxjs-interop'
-import { take, tap } from 'rxjs'
+import { Injectable, inject } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { Subject, catchError, of, sample, startWith, take, tap } from 'rxjs'
 
 type User = {
   id: number
@@ -20,9 +20,18 @@ type LoginDTO = RegistrationDTO
 export class AuthService {
   private http = inject(HttpClient)
 
-  private _user = signal<User | null>(null)
-  user = this._user.asReadonly()
-  user$ = toObservable(this._user) // TODO: doesn't work for AuthGuard
+  private authChange$ = new Subject<void>()
+
+  user$ = this.http.get<User | null>('api/current-user').pipe(
+    sample(this.authChange$.pipe(startWith(123))),
+    catchError((err: HttpErrorResponse) => {
+      if (err.status !== 401) {
+        alert('Unexpected authentification error')
+      }
+      return of(null)
+    }),
+  )
+  user = toSignal(this.user$)
 
   constructor() {
     this.fetchUser()
@@ -32,31 +41,18 @@ export class AuthService {
     this.http
       .post('api/logout', null)
       .pipe(take(1))
-      .subscribe(() => this.fetchUser())
+      .subscribe(() => this.authChange$.next())
   }
 
   login(payload: LoginDTO) {
     return this.http
       .post<void>('api/login', payload, { responseType: 'json' })
-      .pipe(tap(() => this.fetchUser()))
+      .pipe(tap(() => this.authChange$.next()))
   }
 
   register(payload: RegistrationDTO) {
     return this.http.post('api/registration', payload, { responseType: 'json' })
   }
 
-  private fetchUser() {
-    this.http
-      .get<User | null>('api/current-user')
-      .pipe(take(1))
-      .subscribe({
-        next: (user) => this._user.set(user),
-        error: (err: HttpErrorResponse) => {
-          if (err.status !== 401) {
-            alert('Unexpected authentification error')
-          }
-          return this._user.set(null)
-        },
-      })
-  }
+  private fetchUser() {}
 }
