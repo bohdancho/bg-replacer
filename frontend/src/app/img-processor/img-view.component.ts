@@ -11,14 +11,18 @@ import { debounceTime } from 'rxjs'
   },
   template: `
     @if (processingErrorMsg() && processingEnabled()) {
-      <div class="text-red-500 text-5xl flex justify-center h-full flex-col text-center">
+      <div
+        class="text-red-500 text-5xl flex justify-center h-full flex-col text-center"
+      >
         <p>Processing errored:</p>
         <p>{{ processingErrorMsg() }}</p>
       </div>
     } @else if (shouldDisplaySpinner()) {
-      <div class="w-full h-full flex justify-center items-center">loading...</div>
+      <div class="w-full h-full flex justify-center items-center">
+        loading...
+      </div>
     } @else {
-      <img [src]="src()" class="absolute w-full h-full object-contain" />
+      <img alt="" [src]="src()" class="absolute w-full h-full object-contain" />
     }
   `,
 })

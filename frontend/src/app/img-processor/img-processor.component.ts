@@ -20,18 +20,24 @@ type ImgProcessorState = {
   standalone: true,
   imports: [RouterOutlet, CommonModule, ReactiveFormsModule, ImgViewComponent],
   host: {
-    class: 'flex-1 flex flex-col justify-center items-center self-stretch gap-4',
+    class:
+      'flex-1 flex flex-col justify-center items-center self-stretch gap-4',
   },
   template: `
     @if (state().originalSrc) {
-      <label><input type="checkbox" [formControl]="processingControl" />Grayscale</label>
+      <label
+        ><input
+          type="checkbox"
+          [formControl]="processingControl"
+        />Grayscale</label
+      >
       <app-img-view
         [processingEnabled]="(processingControl.valueChanges | async) ?? false"
         [originalSrc]="state().originalSrc"
         [processedSrc]="state().processedSrc ?? null"
         [processingErrorMsg]="state().processingError ?? null"
       />
-      <button mat-raised-button color="primary" (click)="reset()">Reset</button>
+      <button color="primary" (click)="reset()">Reset</button>
     } @else {
       <input type="file" (change)="onOriginalChange($event)" />
     }
@@ -42,7 +48,9 @@ export class ImageProcessorComponent {
 
   processingControl = new FormControl(false)
   state = signal<ImgProcessorState>({
-    processingEnabled: toSignal(this.processingControl.valueChanges.pipe(map(Boolean))),
+    processingEnabled: toSignal(
+      this.processingControl.valueChanges.pipe(map(Boolean)),
+    ),
     originalBlob: null,
     originalSrc: null,
     processedSrc: null,
@@ -51,7 +59,12 @@ export class ImageProcessorComponent {
 
   reset() {
     this.processingControl.setValue(false)
-    this.state.update((state) => ({ ...state, originalSrc: null, processedSrc: null, processingError: null }))
+    this.state.update((state) => ({
+      ...state,
+      originalSrc: null,
+      processedSrc: null,
+      processingError: null,
+    }))
   }
 
   onOriginalChange(event: Event) {
@@ -73,11 +86,19 @@ export class ImageProcessorComponent {
   )
 
   constructor() {
-    this.processingRequest$.pipe(takeUntilDestroyed()).subscribe(({ blob, error }) => {
-      if (error !== null) {
-        return this.state.update((state) => ({ ...state, processingError: error }))
-      }
-      return this.state.update((state) => ({ ...state, processedSrc: URL.createObjectURL(blob) }))
-    })
+    this.processingRequest$
+      .pipe(takeUntilDestroyed())
+      .subscribe(({ blob, error }) => {
+        if (error !== null) {
+          return this.state.update((state) => ({
+            ...state,
+            processingError: error,
+          }))
+        }
+        return this.state.update((state) => ({
+          ...state,
+          processedSrc: URL.createObjectURL(blob),
+        }))
+      })
   }
 }

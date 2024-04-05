@@ -4,6 +4,7 @@ import { ImageProcessorComponent } from './img-processor'
 import { HomePageComponent } from './home-page.component'
 import { RegistrationPageComponent } from './auth/registration-page.component'
 import { isAuthenticatedGuard } from './auth/auth-guard.service'
+import { GalleryComponent } from './gallery/gallery.component'
 
 export const routes: Routes = [
   { path: '', component: HomePageComponent },
@@ -11,8 +12,8 @@ export const routes: Routes = [
   { path: 'registration', component: RegistrationPageComponent },
   { path: 'grayscale', component: ImageProcessorComponent },
   {
-    path: 'protected',
-    component: ImageProcessorComponent,
+    path: 'gallery',
+    component: GalleryComponent,
     canActivate: [isAuthenticatedGuard],
   },
   { path: '**', redirectTo: '/' },

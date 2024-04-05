@@ -5,8 +5,9 @@ import { RouterLink } from '@angular/router'
   selector: 'app-home-page',
   standalone: true,
   imports: [RouterLink],
-  template: `<a routerLink="/grayscale" class="text-blue-800 text-2xl"
-    >grayscale</a
-  >`,
+  template: `<div class="flex flex-col text-center gap-2">
+    <a routerLink="/grayscale" class="text-blue-800 text-2xl">grayscale</a>
+    <a routerLink="/gallery" class="text-blue-800 text-2xl">gallery</a>
+  </div>`,
 })
 export class HomePageComponent {}
