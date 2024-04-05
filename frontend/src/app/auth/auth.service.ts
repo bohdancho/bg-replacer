@@ -1,7 +1,16 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { Subject, catchError, of, sample, startWith, take, tap } from 'rxjs'
+import {
+  Subject,
+  catchError,
+  map,
+  of,
+  startWith,
+  switchMap,
+  take,
+  tap,
+} from 'rxjs'
 
 type User = {
   id: number
@@ -22,20 +31,20 @@ export class AuthService {
 
   private authChange$ = new Subject<void>()
 
-  user$ = this.http.get<User | null>('api/current-user').pipe(
-    sample(this.authChange$.pipe(startWith(123))),
-    catchError((err: HttpErrorResponse) => {
-      if (err.status !== 401) {
-        alert('Unexpected authentification error')
-      }
-      return of(null)
-    }),
+  user$ = this.authChange$.pipe(
+    startWith(null),
+    switchMap(() =>
+      this.http.get<User | null>('api/current-user').pipe(
+        catchError((err: HttpErrorResponse) => {
+          if (err.status !== 401) {
+            alert('Unexpected authentification error')
+          }
+          return of(null)
+        }),
+      ),
+    ),
   )
   user = toSignal(this.user$)
-
-  constructor() {
-    this.fetchUser()
-  }
 
   logout() {
     this.http
@@ -53,6 +62,4 @@ export class AuthService {
   register(payload: RegistrationDTO) {
     return this.http.post('api/registration', payload, { responseType: 'json' })
   }
-
-  private fetchUser() {}
 }
