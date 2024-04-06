@@ -107,7 +107,6 @@ func (s Server) getImageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) deleteImageHandler(w http.ResponseWriter, r *http.Request) {
-	url := "" // TODO: get url from query params
 	user, err := auth.GetCurrentUser(w, r, s.store)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
