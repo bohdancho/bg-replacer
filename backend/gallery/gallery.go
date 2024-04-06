@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"imaginaer/auth"
 	"imaginaer/codecs"
 	"net/http"
@@ -87,13 +88,22 @@ func writeImageToFile(fileName string, bytes []byte) (url string, err error) {
 }
 
 func (s Server) getImageHandler(w http.ResponseWriter, r *http.Request) {
-	_, err := auth.GetCurrentUser(w, r, s.store)
+	user, err := auth.GetCurrentUser(w, r, s.store)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	writeJSON(w, map[string]string{"url": ""}) // TODO:
+	url, err := s.store.ImageUrlByOwner(user.ID)
+	if err != nil {
+		if err == ErrImageNotFound {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, map[string]string{"url": url})
 }
 
 func writeJSON(w http.ResponseWriter, res any) {

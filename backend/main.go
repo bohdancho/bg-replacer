@@ -27,6 +27,7 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"ok":"true"}`))
 	})
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 	port := 8080
 	fmt.Printf("Server started at http://localhost:%v\n", port)

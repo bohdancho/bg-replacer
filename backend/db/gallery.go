@@ -46,7 +46,7 @@ func (s Store) DeleteImageUrl(url string) error {
 
 func (s Store) ImageUrlByOwner(ownerId auth.UserID) (string, error) {
 	var url string
-	row := s.db.QueryRow("SELECT * FROM image WHERE owner_id = ?", ownerId)
+	row := s.db.QueryRow("SELECT url FROM image WHERE owner_id = ?", ownerId)
 	err := row.Scan(&url)
 
 	if err != nil {
