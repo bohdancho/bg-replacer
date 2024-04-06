@@ -27,7 +27,7 @@ export class GalleryComponent {
     pending: boolean
     src: string | null
   }>({
-    pending: false,
+    pending: true,
     src: null,
   })
 

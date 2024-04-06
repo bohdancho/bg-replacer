@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"imaginaer/auth"
 	"imaginaer/codecs"
 	"net/http"
@@ -19,6 +18,7 @@ func NewMux(store Store) http.Handler {
 
 	mux.HandleFunc("GET /", server.getImageHandler)
 	mux.HandleFunc("POST /", server.uploadImageHandler)
+	mux.HandleFunc("DELETE /", server.deleteImageHandler)
 	return mux
 }
 
@@ -42,7 +42,7 @@ var ErrImageAlreadyUploaded = errors.New("delete the existing image first before
 
 type ImageStore interface {
 	CreateImageUrl(url string, ownerID auth.UserID) error
-	DeleteImageUrl(url string) error
+	DeleteImageUrlByOwner(ownerID auth.UserID) error
 	ImageUrlByOwner(ownerID auth.UserID) (string, error)
 }
 
@@ -95,6 +95,26 @@ func (s Server) getImageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	url, err := s.store.ImageUrlByOwner(user.ID)
+	if err != nil {
+		if err == ErrImageNotFound {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, map[string]string{"url": url})
+}
+
+func (s Server) deleteImageHandler(w http.ResponseWriter, r *http.Request) {
+	url := "" // TODO: get url from query params
+	user, err := auth.GetCurrentUser(w, r, s.store)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	err = s.store.DeleteImageUrlByOwner(user.ID)
 	if err != nil {
 		if err == ErrImageNotFound {
 			w.WriteHeader(http.StatusNotFound)

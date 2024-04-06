@@ -23,13 +23,13 @@ func (s Store) CreateImageUrl(url string, ownerID auth.UserID) error {
 	return nil
 }
 
-func (s Store) DeleteImageUrl(url string) error {
-	stmt, err := s.db.Prepare("DELETE FROM image WHERE url = ?")
+func (s Store) DeleteImageUrlByOwner(ownerID auth.UserID) error {
+	stmt, err := s.db.Prepare("DELETE FROM image WHERE owner_id = ?")
 	if err != nil {
 		return err
 	}
 
-	res, err := stmt.Exec(url)
+	res, err := stmt.Exec(ownerID)
 	if err != nil {
 		return err
 	}
