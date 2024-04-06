@@ -1,7 +1,9 @@
 import { HttpClient } from '@angular/common/http'
 import { Component, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { Subject, merge, startWith, switchMap, tap } from 'rxjs'
+import { Subject, catchError, merge, of, startWith, switchMap } from 'rxjs'
+
+const API_PATH = 'api/gallery/'
 
 @Component({
   selector: 'app-gallery',
@@ -12,7 +14,7 @@ import { Subject, merge, startWith, switchMap, tap } from 'rxjs'
       <p>Loading...</p>
     } @else if (state().src) {
       <img [src]="state().src" alt="gallery image" />
-      <button color="primary" (click)="onDelete()">Delete</button>
+      <button color="primary" (click)="delete$.next()">Delete</button>
     } @else {
       <input type="file" (change)="onUpload($event)" />
     }
@@ -33,21 +35,19 @@ export class GalleryComponent {
   delete$ = new Subject<void>()
 
   uploaded$ = this.upload$.pipe(
-    tap(() => this.state.update((state) => ({ ...state, pending: true }))),
-    switchMap((file) => this.http.post<{ url: string }>('api/gallery', file)),
-    takeUntilDestroyed(),
+    switchMap((file) => this.http.post<{ url: string }>(API_PATH, file)),
   )
-  deleted$ = this.delete$.pipe(
-    tap(() => this.state.update((state) => ({ ...state, pending: true }))),
-    switchMap(() => this.http.delete('api/gallery')),
-    takeUntilDestroyed(),
-  )
+  deleted$ = this.delete$.pipe(switchMap(() => this.http.delete(API_PATH)))
 
   constructor() {
+    merge(this.upload$, this.delete$)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.state.update(() => ({ pending: true, src: null })))
+
     merge(this.uploaded$, this.deleted$)
       .pipe(
         startWith(null),
-        switchMap(() => this.http.get<{ url: string }>('api/gallery')),
+        switchMap(() => this.fetchImage()),
         takeUntilDestroyed(),
       )
       .subscribe(({ url }) =>
@@ -62,7 +62,9 @@ export class GalleryComponent {
     this.upload$.next(file)
   }
 
-  onDelete() {
-    this.delete$.next()
+  fetchImage() {
+    return this.http
+      .get<{ url: string }>(API_PATH)
+      .pipe(catchError(() => of({ url: null })))
   }
 }

@@ -7,6 +7,7 @@ import (
 
 	"imaginaer/auth"
 	"imaginaer/db"
+	"imaginaer/gallery"
 	"imaginaer/processing"
 )
 
@@ -18,6 +19,9 @@ func main() {
 
 	processingMux := processing.NewMux()
 	http.Handle("/api/processing/", http.StripPrefix("/api/processing", processingMux))
+
+	galleryMux := gallery.NewMux(store)
+	http.Handle("/api/gallery/", http.StripPrefix("/api/gallery", galleryMux))
 
 	http.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
