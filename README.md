@@ -12,8 +12,7 @@ Frontend is built locally and deployed to S3, backend is deployed via a docker c
 Backend:
 First build and push a new docker image:
 ```
-cd backend
-docker build -t bohdancho/imaginaer-backend .
+docker build -t bohdancho/imaginaer-backend ./backend
 docker push bohdancho/imaginaer-backend
 ```
 Then log into the server via ssh, clone (pull) the repo,
