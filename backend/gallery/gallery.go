@@ -8,6 +8,7 @@ import (
 	"imaginaer/codecs"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/google/uuid"
 )
@@ -82,7 +83,13 @@ func (s Server) uploadImageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func writeImageToFile(fileName string, bytes []byte) (url string, err error) {
-	url = "static/uploads/" + fileName
+	url = filepath.Join("static", "uploads", fileName)
+
+	err = os.MkdirAll(filepath.Dir(url), 0644)
+	if err != nil {
+		return "", err
+	}
+
 	err = os.WriteFile(url, bytes, 0644)
 	return url, err
 }
