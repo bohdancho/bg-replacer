@@ -16,7 +16,7 @@ chmod +x ./deploy.sh
 ./deploy.sh
 ```
 Then log into the server via ssh, clone (pull) the repo,
-if necessary stop the old container & delete the old image:
+if applicable stop the old container & delete the old image:
 ```
 docker stop imaginaer-backend
 docker rm imaginaer-backend
