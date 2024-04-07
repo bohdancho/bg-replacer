@@ -23,5 +23,5 @@ go.work
 # Air
 tmp/
 
-db/imaginaer.db
+imaginaer.db
 static/
