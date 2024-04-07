@@ -83,9 +83,8 @@ func (s Server) uploadImageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func writeImageToFile(fileName string, bytes []byte) (url string, err error) {
-	url = filepath.Join("static", "uploads", fileName)
-
-	err = os.MkdirAll(filepath.Dir(url), 0644)
+	url = filepath.Join("static", fileName)
+	err = os.MkdirAll(filepath.Dir(url), 0777)
 	if err != nil {
 		return "", err
 	}

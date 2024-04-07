@@ -28,7 +28,7 @@ docker pull bohdancho/imaginaer-backend
 ```
 and run it:
 ```
-docker run -dp 80:8080 --name imaginaer-backend bohdancho/imaginaer-backend 
+docker run -dp 80:8080 --volume ./data:/data --volume ./static:/static --name imaginaer-backend bohdancho/imaginaer-backend 
 ```
 
 Frontend:

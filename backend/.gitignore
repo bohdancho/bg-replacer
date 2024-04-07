@@ -24,4 +24,5 @@ go.work
 tmp/
 
 imaginaer.db
+data/
 static/

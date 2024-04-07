@@ -17,5 +17,4 @@ RUN go build -o /app
 FROM alpine:3.19
 COPY --from=build-backend /app /app
 ENTRYPOINT ["/app"]
-# CMD ["sleep", "infinity"]
 EXPOSE 8080

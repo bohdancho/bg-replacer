@@ -2,6 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"os"
+	"path/filepath"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -11,7 +13,13 @@ type Store struct {
 }
 
 func NewStore() Store {
-	db, err := sql.Open("sqlite3", "./imaginaer.db")
+	path := filepath.Join("data", "imaginaer.db")
+	err := os.MkdirAll(filepath.Dir(path), 0777)
+	if err != nil {
+		panic(err)
+	}
+
+	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		panic(err)
 	}
