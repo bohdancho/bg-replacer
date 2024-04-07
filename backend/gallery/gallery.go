@@ -122,7 +122,7 @@ func (s Server) deleteImageHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, map[string]string{"url": url})
+	w.WriteHeader(http.StatusOK)
 }
 
 func writeJSON(w http.ResponseWriter, res any) {
