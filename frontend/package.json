@@ -4,8 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
-    "deploy": "ng build --configuration production && aws s3 cp ./dist/browser s3://imaginaer-static"
+    "build": "ng build"
   },
   "dependencies": {
     "@angular-devkit/build-angular": "^17.3.2",
