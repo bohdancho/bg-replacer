@@ -10,10 +10,11 @@ cd backend; air
 Frontend is built locally and deployed to S3, backend is deployed via a docker container running on AWS EC2. Frontend and backend are then reverse proxied via Cloudfront. 
 
 Backend:
+First build and push a new docker image:
 ```
 cd backend
-chmod +x ./deploy.sh
-./deploy.sh
+docker build -t bohdancho/imaginaer-backend .
+docker push bohdancho/imaginaer-backend
 ```
 Then log into the server via ssh, clone (pull) the repo,
 if applicable stop the old container & delete the old image:
